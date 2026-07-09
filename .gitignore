@@ -1,0 +1,25 @@
+node_modules
+/build
+/.svelte-kit
+/package
+vite.config.ts.timestamp-*
+vite.config.js.timestamp-*
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data — the SQLite DB, session signing secret, per-resume PDFs,
+# and user-uploaded assets. Never commit.
+/data
+*.db
+*.db-shm
+*.db-wal
+
+# Seed content. `seed/<email>.json` pre-populates a resume on that user's first
+# login. These files contain a REAL PERSON'S resume (name, email, phone) and
+# must never be committed. The repo is public.
+/seed/*
+!/seed/README.md
+!/seed/example@example.com.json

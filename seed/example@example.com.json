@@ -1,0 +1,55 @@
+{
+  "_comment": "Rename this to <your-google-email>.json to pre-populate that user's first resume on their first login. Files in seed/ are gitignored (except this example). `data` must satisfy the template schema.",
+  "templateId": "typographic",
+  "title": "My Resume",
+  "data": {
+    "theme": {
+      "colors": { "text": "#4b4032", "heading": "#4f6b3e", "name": "#4f6b3e", "sidebar": "#d5e0c5" },
+      "fonts": {
+        "body": "Nunito Sans",
+        "secondary": "Nunito Sans",
+        "heading": "Nunito Sans",
+        "name": "Libre Baskerville"
+      },
+      "nameSize": 26,
+      "bodySize": 8,
+      "photoWidthPct": 82,
+      "photoBorderColor": "#4f6b3e",
+      "photoBorderWidth": 2.5
+    },
+    "header": {
+      "firstName": "Example",
+      "lastName": "Person",
+      "profession": "Title | Title | Title",
+      "bio": "One or two sentences about who you are.",
+      "photo": "",
+      "photoCaption": ""
+    },
+    "contact": [{ "icon": "email", "text": "you@example.com", "href": "mailto:you@example.com" }],
+    "education": [
+      { "logo": "", "logoWidth": 30, "date": "Year", "lines": ["*Degree*", "Field", "Institution"] }
+    ],
+    "languages": [{ "language": "English", "level": "Fluent" }],
+    "hobbies": [],
+    "sections": [
+      {
+        "id": "work",
+        "title": "Work Experience",
+        "kind": "work",
+        "page": 1,
+        "spaceAbove": 0,
+        "entries": [
+          {
+            "timeframe": "Year - Present",
+            "title": "Job Title",
+            "titleNote": "",
+            "organization": "Company",
+            "location": "City",
+            "spaceAbove": 0,
+            "bullets": ["Something you did"]
+          }
+        ]
+      }
+    ]
+  }
+}

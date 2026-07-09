@@ -1,0 +1,31 @@
+services:
+  resume-studio:
+    build: .
+    image: resume-studio:latest
+    restart: unless-stopped
+    # Bind to loopback by default; put Tailscale or a reverse proxy in front.
+    ports:
+      - '${BIND_ADDR:-127.0.0.1}:3000:3000'
+    volumes:
+      - ./data:/data
+      # Seed files hold a real person's resume. Mounted, never baked into the image.
+      - ./seed:/seed:ro
+    environment:
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-5}
+      TYPST_TIMEOUT_MS: ${TYPST_TIMEOUT_MS:-20000}
+      TYPST_CONCURRENCY: ${TYPST_CONCURRENCY:-2}
+
+    # Typst evaluates user-authored markup. Bound it.
+    mem_limit: 1g
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

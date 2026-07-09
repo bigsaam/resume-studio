@@ -1,0 +1,11 @@
+node_modules
+build
+.svelte-kit
+.git
+.env
+.env.*
+data
+seed
+*.db
+*.db-shm
+*.db-wal
