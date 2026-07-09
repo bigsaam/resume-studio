@@ -93,6 +93,11 @@ Found a problem? Please open an issue.
 | `src/lib/components/` | UI |
 | `fonts/`, `vendor/` | Bundled fonts and Typst packages |
 
+## Status
+
+The core loop works: sign in, pick a template, edit, download. The **chat agent,
+photo uploads, and rate limiting are not built yet** — see [ROADMAP.md](ROADMAP.md).
+
 ## Adding a template
 
 Create `src/lib/server/templates/<id>/` with a `main.typ` (it reads
