@@ -101,6 +101,7 @@ Found a problem? Please open an issue.
 | `src/lib/server/compile.ts` | Sandboxed Typst compile service |
 | `src/lib/server/agent/` | Claude Agent SDK session + JSON-only MCP tools |
 | `src/lib/server/uploads.ts` | Image ingest: decode, re-encode, strip metadata |
+| `src/lib/sections.ts` | Section construction and lossless kind conversion |
 | `src/lib/server/access.ts` | Allowlist, invites, ownership checks |
 | `src/lib/components/` | UI |
 | `fonts/`, `vendor/` | Bundled fonts and Typst packages |
@@ -108,8 +109,8 @@ Found a problem? Please open an issue.
 ## Status
 
 The core loop works: sign in, pick a template, edit or chat, upload a photo,
-download. **Editor completeness, and rate limiting beyond a daily chat cap, are
-not built yet** — see [ROADMAP.md](ROADMAP.md).
+download. **Rate limiting beyond a daily chat cap is not built yet** — see
+[ROADMAP.md](ROADMAP.md).
 
 Chat needs `ANTHROPIC_API_KEY`. Without it the Chat tab says so and the endpoint
 returns 503; everything else works unchanged.

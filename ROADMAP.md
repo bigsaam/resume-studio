@@ -15,23 +15,17 @@ document, not an image). Stored as `.png` when it has transparency, `.jpg`
 otherwise, because Typst picks its decoder from the extension. `ImageField`
 uploads and stores the returned opaque id — never a path.
 
+**Phase 4 (editor completeness) is built.** Sections can be added, removed,
+reordered, and changed between kinds without losing their content
+(`lib/sections.ts`, and `sections.test.ts` proves all sixteen conversions still
+satisfy the schema). Exhibition `items[]` and bullet `sub[]` are editable.
+Résumés can be duplicated and renamed. The template gallery renders a thumbnail
+of each template's own starting content. Uploads no résumé references can be
+reaped from Settings.
+
 Everything below is what remains, in the order it makes sense to build.
 
 ---
-
-## Phase 4 — editor completeness
-
-`ResumeForm.svelte` covers most of the schema but not all of it:
-
-- Cannot **add, remove, or reorder sections**, or change a section's `kind`.
-- Exhibition **`items[]` are not editable** (only entry title/meta/date are).
-- Bullet `sub[]` editing is crude (a textarea, one per line).
-- Resume **duplicate** action; rename from the workbench.
-- The template gallery has no thumbnails.
-- **Orphaned uploads are never collected.** Removing a photo detaches the id
-  from the résumé but leaves the file, because another résumé may still use it.
-  Nothing reaps an asset that no résumé references; `MAX_ASSETS_PER_USER` is the
-  only bound. A "manage uploads" list in Settings would close this.
 
 ## Phase 5 — hardening
 
@@ -81,7 +75,12 @@ is enforced. What's left:
 - **An upload orphaned by a crash is never collected.** The file is written and
   renamed before the row is inserted; a `SIGKILL` in between leaves a file no
   `resolveAssetPath` can reach (so it is unreachable, not dangerous) and nothing
-  reaps it. A sweep of `assetsDir` for files with no matching row would close it.
+  reaps it. Settings reaps uploads with no *résumé* referencing them, which is a
+  different set — it works from the rows. A sweep of `assetsDir` for files with
+  no matching row would close this one.
+- **Template thumbnails are cached until the directory is deleted.** Editing a
+  `main.typ` or a `default.ts` will not regenerate `data/thumbs/*.png`. Deleting
+  the directory is the way; a content hash in the filename would be better.
 - **`drizzle-orm` is pinned at `^0.36.3`, which has a HIGH advisory**
   (GHSA-gpj5-g38j-94v9, SQL injection via improperly escaped *identifiers*, fixed
   in `>=0.45.2`). Not reachable here — every `sql` template interpolates either a
@@ -166,6 +165,22 @@ the renders below are real PDFs.
 | Résumé whose `template_id` no longer exists | `error` event, turn refundable, no leak of the template name (unit test) |
 | Agent `$HOME` | `data/agent/<resumeId>/` — one session-store bucket per résumé |
 | Response headers | `application/x-ndjson`, `no-store`, `x-accel-buffering: no` |
+
+## Verified in Phase 4
+
+| Check | Result |
+|---|---|
+| All sixteen `convertSection` kind pairs | every result parses against `sectionSchema`; heading, page and spacing survive all of them |
+| A role converted to bullets and back | title, timeframe and bullets round-trip; a prose `body` becomes a sub-line |
+| Content past the schema's caps (60 bullets → 30 entries, 20 sub-lines → 10) | trimmed, not left to fail validation later |
+| "+ sub-bullet" | opens the editor and *stays* open while empty — it previously did nothing at all |
+| Duplicating a résumé | copies content, **not** `agent_session_id` and not the transcript; `render_version` restarts at 0; titles stay under 200 chars through repeated copies |
+| Deleting a résumé | removes the rendered PDF directory, and the transcript goes via `ON DELETE CASCADE` (so the `foreign_keys = ON` pragma is confirmed live) |
+| Renaming | `PATCH /api/resumes/:id` — no recompile, no lock, so it cannot collide with a chat turn |
+| Reaping uploads | deletes only what no résumé of *that user* references; another user's résumé referencing your id does not keep it alive |
+| Four concurrent first-requests for one thumbnail | one Typst run, four identical bytes (in-flight dedupe) |
+| `GET /api/templates/:id/thumb` unauthenticated / unknown id / `../../etc/passwd` | 401 / 404 / 404 |
+| Thumbnail output | 420px wide PNG for both templates, rendered from their own `defaultData` |
 
 ## Verified in Phase 3
 

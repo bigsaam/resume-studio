@@ -43,6 +43,8 @@ export const config = {
 	/** Per-resume PDFs and per-user uploaded assets. */
 	resumesDir: path.join(dataRoot, 'resumes'),
 	assetsDir: path.join(dataRoot, 'assets'),
+	/** Rendered previews of each template's starting content. Regenerable. */
+	thumbsDir: path.join(dataRoot, 'thumbs'),
 	/**
 	 * `cwd` and `HOME` for the Claude Agent SDK subprocess. It writes its session
 	 * store under `$HOME/.claude/`, and resuming a conversation reads it back.
