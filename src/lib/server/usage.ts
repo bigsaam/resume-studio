@@ -17,30 +17,48 @@ export function utcDay(now: Date = new Date()): string {
 	return now.toISOString().slice(0, 10);
 }
 
+export type QuotaReason = 'turns' | 'tokens';
+
 export interface TurnQuota {
 	ok: boolean;
+	/** Which ceiling stopped it. Only meaningful when `ok` is false. */
+	reason?: QuotaReason;
 	used: number;
 	limit: number;
 }
 
 /**
- * Claim one turn for today. Returns `ok: false` when the user is at their cap,
- * having changed nothing.
+ * Claim one turn for today. Returns `ok: false` when the user is at either
+ * ceiling, having changed nothing.
+ *
+ * Both ceilings live in the one `WHERE`, so the whole decision is a single
+ * atomic statement. A turn count alone is a weak bound on what the operator
+ * pays: the token budget is the real one. It is checked *before* the turn runs,
+ * so a turn may carry the user past the budget by its own size — but only once,
+ * and never by a second turn.
  */
 export function reserveTurn(userId: number, day: string = utcDay()): TurnQuota {
 	const limit = config.chatTurnsPerDay;
+	const tokenLimit = config.chatTokensPerDay;
 
-	const claimed = db
-		.insert(usage)
-		.values({ userId, day, turns: 1 })
-		.onConflictDoUpdate({
-			target: [usage.userId, usage.day],
-			set: { turns: sql`${usage.turns} + 1` },
-			where: sql`${usage.turns} < ${limit}`
-		})
-		.run().changes === 1;
+	const claimed =
+		db
+			.insert(usage)
+			.values({ userId, day, turns: 1 })
+			.onConflictDoUpdate({
+				target: [usage.userId, usage.day],
+				set: { turns: sql`${usage.turns} + 1` },
+				where: sql`${usage.turns} < ${limit} AND (${usage.inputTokens} + ${usage.outputTokens}) < ${tokenLimit}`
+			})
+			.run().changes === 1;
 
-	return { ok: claimed, used: turnsUsed(userId, day), limit };
+	const used = turnsUsed(userId, day);
+	if (claimed) return { ok: true, used, limit };
+
+	// Say which wall they hit — "you've used your turns" is a lie when they
+	// burned the budget in three.
+	const reason: QuotaReason = used >= limit ? 'turns' : 'tokens';
+	return { ok: false, reason, used, limit };
 }
 
 /**

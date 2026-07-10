@@ -70,6 +70,49 @@ describe('reserveTurn', () => {
 	});
 });
 
+describe('the daily token budget', () => {
+	it('refuses a turn once the budget is spent, even with turns left', () => {
+		const uid = makeUser('tokens@example.com');
+		expect(reserveTurn(uid).ok).toBe(true);
+
+		// One expensive turn can exhaust the budget long before the turn count.
+		recordTokens(uid, config.chatTokensPerDay, 0);
+
+		const blocked = reserveTurn(uid);
+		expect(blocked.ok).toBe(false);
+		expect(blocked.reason).toBe('tokens');
+		// Turns remain — saying "you've used all your turns" here would be a lie.
+		expect(blocked.used).toBeLessThan(blocked.limit);
+	});
+
+	it('counts input and output against the same budget', () => {
+		const uid = makeUser('split@example.com');
+		reserveTurn(uid);
+		recordTokens(uid, config.chatTokensPerDay - 1, 0);
+		expect(reserveTurn(uid).ok).toBe(true); // one under
+
+		recordTokens(uid, 0, 1); // now exactly at the ceiling
+		expect(reserveTurn(uid).ok).toBe(false);
+	});
+
+	it('blames the turn count when that is what ran out first', () => {
+		const uid = makeUser('turns@example.com');
+		for (let i = 0; i < config.chatTurnsPerDay; i++) reserveTurn(uid);
+
+		const blocked = reserveTurn(uid);
+		expect(blocked.ok).toBe(false);
+		expect(blocked.reason).toBe('turns');
+	});
+
+	it('is per day, like the turn count', () => {
+		const uid = makeUser('daily@example.com');
+		reserveTurn(uid, '2026-03-01');
+		recordTokens(uid, config.chatTokensPerDay, 0, '2026-03-01');
+		expect(reserveTurn(uid, '2026-03-01').ok).toBe(false);
+		expect(reserveTurn(uid, '2026-03-02').ok).toBe(true);
+	});
+});
+
 describe('refundTurn', () => {
 	it('gives a turn back and never goes negative', () => {
 		const uid = makeUser('f@example.com');

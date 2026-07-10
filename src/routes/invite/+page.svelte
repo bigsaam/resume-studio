@@ -21,7 +21,11 @@
 			<h1 class="text-2xl font-semibold tracking-tight">Redeem an invite</h1>
 		</div>
 
-		{#if data.denied}
+		{#if data.throttled}
+			<p class="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500" role="alert">
+				Too many invite codes tried from here. Wait an hour and try again.
+			</p>
+		{:else if data.denied}
 			<p class="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500" role="alert">
 				That Google account isn't on the guest list. If someone gave you an invite code, enter it below.
 			</p>

@@ -29,15 +29,9 @@ Everything below is what remains, in the order it makes sense to build.
 
 ## Phase 5 — hardening
 
-`usage` now records per-user, per-day turns and tokens, and `CHAT_TURNS_PER_DAY`
-is enforced. What's left:
-
-- A daily **token** budget, not just a turn count — the tokens are already
-  recorded, nothing reads them back. One 12-step turn costs far more than one
-  one-step turn, so a turn cap alone is a loose bound on spend.
-- Turns-per-minute, to stop one user monopolising the Typst semaphore.
-- Rate-limit invite **redemption** attempts (codes are 128-bit and hashed, but
-  attempts are currently unbounded).
+Rate limiting is done: `CHAT_TURNS_PER_DAY`, `CHAT_TOKENS_PER_DAY` (both in one
+atomic `reserveTurn`), `CHAT_TURNS_PER_MINUTE`, and `INVITE_ATTEMPTS_PER_HOUR`.
+What's left:
 - Redact more aggressively: compiler logs are stripped of paths
   (`compile.ts:redact`) but still quote the offending résumé line back to the
   owner. That's fine for the owner; make sure it never lands in a shared log.

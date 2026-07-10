@@ -5,7 +5,15 @@ import { appendChatMessage, clearChat, listChatMessages } from '$lib/server/chat
 import { runChatTurn, type AgentEvent } from '$lib/server/agent';
 import { reserveTurn, refundTurn } from '$lib/server/usage';
 import { tryLock, unlock } from '$lib/server/locks';
+import { RateLimiter } from '$lib/server/ratelimit';
 import { config } from '$lib/server/config';
+
+/**
+ * Burst control, on top of the daily ceilings in `usage.ts`. A user with 100
+ * turns a day could still fire them all at once and monopolise the Typst
+ * semaphore. In memory, so it bounds one process — see `ratelimit.ts`.
+ */
+const burst = new RateLimiter(config.chatTurnsPerMinute, 60_000);
 
 /**
  * One chat turn, streamed as NDJSON.
@@ -59,8 +67,20 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
 		);
 	}
 
-	// Lock first: being told "busy" should not cost the user a turn.
-	if (!tryLock(resume.id)) return json({ error: 'This résumé is already being edited.' }, { status: 409 });
+	// Cheapest check first, and it costs nothing to fail.
+	const paced = burst.check(String(user.id));
+	if (!paced.ok) {
+		return json(
+			{ error: 'You’re sending messages too quickly. Wait a moment.' },
+			{ status: 429, headers: { 'retry-after': String(Math.ceil(paced.retryAfterMs / 1000)) } }
+		);
+	}
+
+	// Lock next: being told "busy" should not cost the user a turn.
+	if (!tryLock(resume.id)) {
+		burst.refund(String(user.id));
+		return json({ error: 'This résumé is already being edited.' }, { status: 409 });
+	}
 
 	let released = false;
 	const release = () => {
@@ -78,8 +98,14 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
 	}
 	if (!quota.ok) {
 		release();
+		burst.refund(String(user.id));
 		return json(
-			{ error: `You've used all ${quota.limit} chat turns for today. The limit resets at midnight UTC.` },
+			{
+				error:
+					quota.reason === 'tokens'
+						? "You've used today's chat budget. It resets at midnight UTC."
+						: `You've used all ${quota.limit} chat turns for today. The limit resets at midnight UTC.`
+			},
 			{ status: 429 }
 		);
 	}

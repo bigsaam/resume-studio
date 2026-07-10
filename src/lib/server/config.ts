@@ -84,6 +84,16 @@ export const config = {
 	model: str(env.CLAUDE_MODEL, 'claude-sonnet-5'),
 	maxTurns: int(env.CLAUDE_MAX_TURNS, 12),
 	chatTurnsPerDay: int(env.CHAT_TURNS_PER_DAY, 100),
+	/**
+	 * The real bound on spend. A turn count says nothing about cost: one twelve-step
+	 * turn over a long résumé costs far more than a dozen one-step turns. Checked
+	 * before a turn starts, so a turn may overshoot by its own size — never by more.
+	 */
+	chatTokensPerDay: int(env.CHAT_TOKENS_PER_DAY, 400_000),
+	/** Burst control, so one user can't monopolise the Typst semaphore. */
+	chatTurnsPerMinute: int(env.CHAT_TURNS_PER_MINUTE, 6),
+	/** Invite-code guesses per client address per hour. */
+	inviteAttemptsPerHour: int(env.INVITE_ATTEMPTS_PER_HOUR, 10),
 	/** Longest a single chat turn may run before it is aborted. */
 	chatTimeoutMs: int(env.CHAT_TIMEOUT_MS, 120_000),
 	/** Reject a chat message longer than this before it reaches the model. */
