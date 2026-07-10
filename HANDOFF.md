@@ -19,21 +19,21 @@ ownership, email allowlist + single-use invite codes.
 
 Started from a repo where only Phase 1 (the walking skeleton) existed.
 
-| Phase | What landed | Commit |
-| --- | --- | --- |
-| Tooling | pnpm 11 install fixed (native build + supply-chain policy) | `a8de80c` |
-| 2 | Chat agent — MCP tools, streaming route, ChatPanel, daily turn cap | `abd78fd` |
-| 3 | Photo uploads — decode/re-encode, strip metadata, opaque ids | `50f5f25` |
-| 4 | Sections add/remove/reorder/convert; bullet + exhibition editors | `208ffdd` |
-| 4 | Duplicate + rename a résumé | `313970b` |
-| 4 | Manage uploads from Settings; reap orphans | `c467e5e` |
-| 4 | Template gallery thumbnails | `239b443` |
-| 5 | Token budget, burst control, bounded invite guessing | `5ca385f` |
-| 5 | drizzle-orm 0.36→0.45 (closes GHSA-gpj5-g38j-94v9) | `31ece4f` |
-| 5 | Prettier config + fix (`pnpm lint` now runs) | `1a1866b` |
-| 5 | ESLint flat config + GitHub Actions CI | `7098ee0` |
-| 5 | Drop the dead `users.theme` column (migration `0001`) | `1154fc4` |
-| 5 | Accurate render-time egress docs | `385637b` |
+| Phase   | What landed                                                        | Commit    |
+| ------- | ------------------------------------------------------------------ | --------- |
+| Tooling | pnpm 11 install fixed (native build + supply-chain policy)         | `a8de80c` |
+| 2       | Chat agent — MCP tools, streaming route, ChatPanel, daily turn cap | `abd78fd` |
+| 3       | Photo uploads — decode/re-encode, strip metadata, opaque ids       | `50f5f25` |
+| 4       | Sections add/remove/reorder/convert; bullet + exhibition editors   | `208ffdd` |
+| 4       | Duplicate + rename a résumé                                        | `313970b` |
+| 4       | Manage uploads from Settings; reap orphans                         | `c467e5e` |
+| 4       | Template gallery thumbnails                                        | `239b443` |
+| 5       | Token budget, burst control, bounded invite guessing               | `5ca385f` |
+| 5       | drizzle-orm 0.36→0.45 (closes GHSA-gpj5-g38j-94v9)                 | `31ece4f` |
+| 5       | Prettier config + fix (`pnpm lint` now runs)                       | `1a1866b` |
+| 5       | ESLint flat config + GitHub Actions CI                             | `7098ee0` |
+| 5       | Drop the dead `users.theme` column (migration `0001`)              | `1154fc4` |
+| 5       | Accurate render-time egress docs                                   | `385637b` |
 
 Two independent reviewers (security + TypeScript) ran against Phases 2 and 3 and
 found real bugs, all fixed. The "as built" corrections to the original plan —
@@ -83,15 +83,15 @@ The dev box does **not** have the toolchain a fresh clone needs:
 
 ## Map
 
-| Path | Role |
-| --- | --- |
-| `src/lib/server/agent/` | Claude Agent SDK session + JSON-only MCP tools |
-| `src/lib/server/uploads.ts` | Image ingest: decode, re-encode, strip metadata |
-| `src/lib/server/compile.ts` | Sandboxed Typst compile (throwaway `--root`) |
-| `src/lib/server/usage.ts` | Per-user daily turn + token ceilings (atomic) |
-| `src/lib/server/ratelimit.ts` | Sliding-window limiter (chat burst, invites) |
-| `src/lib/sections.ts` | Section construction + lossless kind conversion |
-| `src/lib/server/access.ts` | Allowlist, invites, ownership checks |
+| Path                          | Role                                            |
+| ----------------------------- | ----------------------------------------------- |
+| `src/lib/server/agent/`       | Claude Agent SDK session + JSON-only MCP tools  |
+| `src/lib/server/uploads.ts`   | Image ingest: decode, re-encode, strip metadata |
+| `src/lib/server/compile.ts`   | Sandboxed Typst compile (throwaway `--root`)    |
+| `src/lib/server/usage.ts`     | Per-user daily turn + token ceilings (atomic)   |
+| `src/lib/server/ratelimit.ts` | Sliding-window limiter (chat burst, invites)    |
+| `src/lib/sections.ts`         | Section construction + lossless kind conversion |
+| `src/lib/server/access.ts`    | Allowlist, invites, ownership checks            |
 
 Every claim in ROADMAP.md's **Verified in Phase N** tables was checked against a
 running server, not assumed. Re-run those after any change to `compile.ts`, the
