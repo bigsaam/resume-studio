@@ -12,6 +12,8 @@ export function bootstrap(): void {
 	fs.mkdirSync(config.dataRoot, { recursive: true });
 	fs.mkdirSync(config.resumesDir, { recursive: true });
 	fs.mkdirSync(config.assetsDir, { recursive: true });
+	// $HOME and cwd for the agent subprocess; it writes its session store here.
+	fs.mkdirSync(config.agentDir, { recursive: true });
 
 	runMigrations(config.databasePath);
 }

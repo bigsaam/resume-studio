@@ -73,9 +73,15 @@ resume field is, in effect, Typst code. That is deliberate — it's what makes
   `vendor/typst-packages/` and resolved from disk.
 - **Uploads are opaque ids**, never paths, so a crafted `photo` value can't
   traverse the filesystem.
-- **The chat agent has no filesystem or shell tools** — only `get_resume` /
-  `edit_resume`, scoped to the caller's own resume, validated against the schema
-  before anything is persisted.
+- **The chat agent has no filesystem or shell tools.** The session is created
+  with `tools: []`, which removes every built-in (`Read`, `Write`, `Bash`,
+  `Grep`, `WebFetch`); the only capabilities are `get_resume`, `edit_resume` and
+  `render_resume`, each closed over one `(userId, resumeId)` pair and re-checking
+  ownership. A `canUseTool` gate denies anything else by name. `edit_resume`
+  validates against the Zod schema before persisting, and a turn that leaves the
+  résumé unable to typeset is rolled back to `last_good_json`.
+- **Chat is metered.** A turn is reserved against a per-user daily cap *before*
+  the model is called, and refunded only if nothing was billed.
 - Sessions are opaque, DB-backed, and bound to a user id. `id_token`s are
   verified against Google's JWKS (`iss`, `aud`, `exp`, `nonce`, `email_verified`).
   Resumes you don't own return **404**, not 403.
@@ -95,8 +101,11 @@ Found a problem? Please open an issue.
 
 ## Status
 
-The core loop works: sign in, pick a template, edit, download. The **chat agent,
-photo uploads, and rate limiting are not built yet** — see [ROADMAP.md](ROADMAP.md).
+The core loop works: sign in, pick a template, edit or chat, download. **Photo
+uploads and editor completeness are not built yet** — see [ROADMAP.md](ROADMAP.md).
+
+Chat needs `ANTHROPIC_API_KEY`. Without it the Chat tab says so and the endpoint
+returns 503; everything else works unchanged.
 
 ## Adding a template
 

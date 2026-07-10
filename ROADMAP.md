@@ -4,42 +4,12 @@ Phase 1 (the walking skeleton) is done and verified end-to-end: sign in, create 
 resume from a template, edit fields, watch the PDF rebuild, download it. The
 sandbox and access controls were tested, not assumed (see *Verified* below).
 
+**Phase 2 (the chat agent) is built.** See *Phase 2, as built* below for the
+places the plan turned out to be wrong.
+
 Everything below is what remains, in the order it makes sense to build.
 
 ---
-
-## Phase 2 — the chat agent
-
-`src/lib/server/agent/` exists but is **empty**. The `chat_messages` table is
-declared in `db/schema.ts` and referenced nowhere yet.
-
-Port from the old Express app (`jenn-resume/app/src/{claudeSession,server,previewTool}.ts`),
-with these changes — they matter:
-
-- **Don't use the `claude_code` system-prompt preset.** It assumes `Read`/`Edit`
-  exist and will keep telling the model to edit files it has no tools for. Pass a
-  plain string `systemPrompt`.
-- **Tools are JSON-only.** Build an in-process MCP server (`createSdkMcpServer`)
-  closing over one `resumeId`, exposing `get_resume`, `edit_resume`, and
-  `render_resume`. Set `allowedTools` to exactly those three `mcp__resume__*`
-  names, and keep a `canUseTool` gate that denies everything else. No `Read`,
-  `Write`, `Grep`, or `Bash` — Claude Code's `Read` takes absolute paths, so a
-  `cwd` would not contain an untrusted user.
-- `edit_resume` must validate against the template's Zod schema **before** it
-  persists (`resumes.ts:validateResumeData`).
-- Persist the SDK's `session_id` to `resumes.agent_session_id` so chat resumes
-  with context — **per resume**, not globally. (The old app kept one
-  `session.json` for the whole process; multi-user, that hands one person's
-  conversation to the next.)
-- Stream NDJSON with the existing event shapes: `delta`, `tool`, `render`,
-  `status`, `done`, `error`.
-- Reuse the compile → repair (×2) → revert loop, but revert against
-  `resumes.last_good_json`, not files on disk. `withResumeLock()` in
-  `lib/server/locks.ts` already serializes a chat turn against a form auto-save
-  on the same resume; the chat route must take the same lock.
-
-Route: `src/routes/api/resumes/[id]/chat/+server.ts`. UI: a `ChatPanel.svelte`
-tabbed beside `ResumeForm` in the workbench.
 
 ## Phase 3 — assets (the photo)
 
@@ -67,11 +37,13 @@ her photo.
 
 ## Phase 5 — hardening
 
-The `usage` table is declared and unreferenced. Nothing rate-limits anything
-today, and **the operator's Anthropic account pays for every user's chat.**
+`usage` now records per-user, per-day turns and tokens, and `CHAT_TURNS_PER_DAY`
+is enforced. What's left:
 
-- Per-user chat limits (turns/min, turns/day) and a daily token budget read off
-  the SDK `result` message's usage. `config.chatTurnsPerDay` already exists.
+- A daily **token** budget, not just a turn count — the tokens are already
+  recorded, nothing reads them back. One 12-step turn costs far more than one
+  one-step turn, so a turn cap alone is a loose bound on spend.
+- Turns-per-minute, to stop one user monopolising the Typst semaphore.
 - Rate-limit invite **redemption** attempts (codes are 128-bit and hashed, but
   attempts are currently unbounded).
 - Redact more aggressively: compiler logs are stripped of paths
@@ -83,10 +55,27 @@ today, and **the operator's Anthropic account pays for every user's chat.**
 - Deny the Typst child network egress at the container/host level. The package is
   vendored so nothing *should* be fetched, but `#import "@preview/..."` inside a
   user's bio would otherwise still try.
-- CI: typecheck + build, and a secret/PII scan before publish.
+- CI: typecheck + build + `pnpm test`, and a secret/PII scan before publish.
+- **`pnpm lint` cannot run.** There is no `eslint.config.js` (ESLint 9 requires
+  flat config) and no Prettier config, so `prettier --check .` compares the whole
+  tree against Prettier's defaults and fails on every file. Adding a Prettier
+  config reformats ~59 files, so it wants to be its own commit. Separately,
+  `prettier-plugin-svelte@3.5.2` throws `getVisitorKeys is not a function` on
+  every `.svelte` file under `prettier@3.9.x` — it needs the v4 plugin.
 
 ## Known smaller gaps
 
+- The chat agent has **never run against the real Anthropic API** — only against
+  a stub. The wiring is proven; the *prompt* is not. Expect to iterate on
+  `agent/prompt.ts` once a real model is editing real résumés.
+- `edit_resume` takes the **whole document**, so every edit re-sends the résumé.
+  Fine at these sizes; revisit if the 256 KB ceiling ever gets approached.
+- The per-résumé lock (`locks.ts`) is an **in-process `Set`**. Two app instances
+  against one database would not see each other's locks. Single-instance only,
+  until it moves into SQLite.
+- A turn cut short records a **floor**, not the true token spend: an assistant
+  message's `output_tokens` is its count at `message_start`. Under-counts, never
+  over-counts.
 - `templates/starter/main.typ` **ignores `section.page`** — it's one continuous
   flow. That's intentional, but means moving a section to "p2" does nothing there.
 - The seed example carries a `_comment` key; Zod strips unknown keys, so it's
@@ -96,6 +85,75 @@ today, and **the operator's Anthropic account pays for every user's chat.**
   `icon-img` in `main.typ`.
 
 ---
+
+## Phase 2, as built
+
+The plan above was mostly right. Four things it got wrong, kept here because
+each cost real time to find:
+
+- **`jenn-resume` does not exist** anywhere on the dev box. There was nothing to
+  port from; the agent was written from scratch against the plan's description.
+- **`allowedTools` does not restrict the tool surface** — per the SDK's own docs
+  it only auto-approves without prompting, so `Read`/`Bash` would still have been
+  *available*. The option that actually removes them is `tools: []`. Confirmed
+  against a live session: `system/init` reports exactly the three
+  `mcp__resume__*` tools.
+- **Worse, `allowedTools` *disables* the `canUseTool` gate for the names it
+  lists.** The SDK says so at runtime (`CLAUDE_SDK_CAN_USE_TOOL_SHADOWED`):
+  "bare allowedTools entries auto-approve the whole tool before the callback is
+  consulted." Listing the three tools there — as the plan said to — meant the
+  deny-gate never ran for them. `allowedTools` is now omitted entirely, so every
+  tool call goes through `canUseTool`, which defaults to deny.
+- **`settingSources` defaults to loading everything** (`~/.claude/settings.json`,
+  `.claude/`, `CLAUDE.md` under `cwd`). On a multi-tenant server that is operator
+  config leaking into a user's session. It is now `[]`.
+- **`canUseTool`'s `updatedInput` *replaces* the tool's arguments.** Returning
+  `{ behavior: 'allow', updatedInput: {} }` silently wipes `edit_resume`'s
+  payload. Pass `input` straight through.
+
+And three the SDK surfaced only at runtime:
+
+- **A provider failure arrives as `subtype: 'success'` with `is_error: true`,**
+  and its `result` string is the error text. Trusting `subtype` alone wrote
+  *"Invalid API key · Fix external API key"* into the user's transcript as if the
+  assistant had said it, and skipped the quota refund. Check `is_error`; decide
+  refunds on tokens actually billed, not on "a result arrived".
+- **`result.usage` is cumulative for the whole turn** (measured: four steps of
+  100 in / 30 out arrive as `400` / `120`). So bill once, from the `result` —
+  billing per-`assistant`-message as well would double-count. But a turn cut
+  short never emits a `result`, so per-step usage is accumulated as a *floor* and
+  recorded if no `result` ever arrives. Without it, hanging up mid-turn spent the
+  operator's money and recorded nothing.
+- **`request.signal` does not fire when the browser hangs up mid-stream** under
+  `adapter-node` — only the `ReadableStream`'s `cancel()` does. The route now
+  drives its own `AbortController` from both. `cancel()` must *not* release the
+  per-résumé lock: the turn is still unwinding and may yet write. It is released
+  once the turn settles, after `finalizeTurn`.
+
+## Verified in Phase 2
+
+Against a running server, some checks with a deliberately invalid
+`ANTHROPIC_API_KEY`, the rest against a stub Anthropic API pointed at by
+`ANTHROPIC_BASE_URL` that scripts one scripted turn. Typst was real throughout —
+the renders below are real PDFs.
+
+| Check | Result |
+|---|---|
+| `GET`/`POST`/`DELETE` `/api/resumes/:id/chat`, unauthenticated | 401 |
+| Chat on another user's resume | **404** (not 403, and not 503 — ownership is checked before config) |
+| `POST` with no credentials configured | 503, and the Chat tab renders a notice |
+| Empty, whitespace-only, malformed, or >4000-char message | 400 |
+| Two concurrent turns on one resume | one 200, one **409**; the 409 costs no turn |
+| At the daily cap | 429, `usage.turns` does not creep past the cap |
+| A turn that bills nothing (rejected key) | refunded to 0; no assistant message persisted; no provider error text in the transcript |
+| Tool list the model receives (`system/init`) | exactly `get_resume`, `edit_resume`, `render_resume` |
+| A **successful** turn | `get_resume → edit_resume → render_resume → reply`; PDF written, `render_version` 0→1, `last_good_json` set, transcript persisted, `agent_session_id` stored |
+| A second turn on the same resume | resumes the stored session — the model sees the earlier tool calls |
+| The model calls `Bash` ("cat /etc/passwd") | never executed; the turn carries on with its three tools |
+| Client hangs up mid-turn | model stopped, lock released only after the résumé settles, turn **not** refunded, spend recorded as a per-step floor |
+| Résumé whose `template_id` no longer exists | `error` event, turn refundable, no leak of the template name (unit test) |
+| Agent `$HOME` | `data/agent/<resumeId>/` — one session-store bucket per résumé |
+| Response headers | `application/x-ndjson`, `no-store`, `x-accel-buffering: no` |
 
 ## Verified in Phase 1
 

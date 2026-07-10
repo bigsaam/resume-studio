@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ResumeForm from '$lib/components/ResumeForm.svelte';
+	import ChatPanel from '$lib/components/ChatPanel.svelte';
 	import PdfPreview from '$lib/components/PdfPreview.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { PageData } from './$types';
@@ -8,7 +9,8 @@
 	let { data }: { data: PageData } = $props();
 
 	// Deliberately a one-time snapshot: the form owns this copy from here on,
-	// and we re-sync explicitly via reload() after a server-side revert.
+	// and we re-sync explicitly via reload() after a server-side revert or an
+	// edit made by the chat agent.
 	// svelte-ignore state_referenced_locally
 	let resume = $state<ResumeData>(structuredClone(data.resume.data));
 	// svelte-ignore state_referenced_locally
@@ -16,6 +18,10 @@
 	let building = $state(false);
 	let error = $state<string | null>(null);
 	let reverted = $state(false);
+
+	let tab = $state<'edit' | 'chat'>('edit');
+	/** The agent holds the per-résumé lock; a form save would only 409. */
+	let agentBusy = $state(false);
 
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -26,6 +32,7 @@
 	}
 
 	async function save() {
+		if (agentBusy) return;
 		building = true;
 		reverted = false;
 		try {
@@ -72,6 +79,16 @@
 		resume = body.data;
 		version = body.renderVersion;
 	}
+
+	function onAgentRender(v: number) {
+		// A failed compile reports the version it did not advance past.
+		if (v > version) version = v;
+	}
+
+	async function onAgentApplied() {
+		error = null;
+		await reload();
+	}
 </script>
 
 <svelte:head><title>{data.resume.title} · Resume Studio</title></svelte:head>
@@ -83,7 +100,9 @@
 			<h1 class="truncate text-xl font-semibold tracking-tight">{data.resume.title}</h1>
 		</div>
 		<div class="flex items-center gap-2 text-xs">
-			{#if reverted}
+			{#if agentBusy}
+				<span class="chip"><Icon name="chat" size={13} /> Assistant is editing…</span>
+			{:else if reverted}
 				<span class="chip !bg-red-500/10 !text-red-500">
 					<Icon name="warning" size={13} /> Reverted — that change broke the layout
 				</span>
@@ -99,12 +118,47 @@
 	</div>
 
 	<div class="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,26rem)_1fr]">
-		<div class="min-h-0 overflow-y-auto rounded-xl border border-line bg-bg-soft px-4">
-			<ResumeForm bind:data={resume} onchange={scheduleSave} />
+		<div class="flex min-h-0 flex-col rounded-xl border border-line bg-bg-soft px-4">
+			<div class="flex shrink-0 gap-1 border-b border-line pt-2 text-sm">
+				<button
+					type="button"
+					class="rounded-t-lg px-3 py-2 font-medium"
+					class:text-accent={tab === 'edit'}
+					class:text-fg-faint={tab !== 'edit'}
+					onclick={() => (tab = 'edit')}
+				>
+					Edit
+				</button>
+				<button
+					type="button"
+					class="flex items-center gap-1.5 rounded-t-lg px-3 py-2 font-medium"
+					class:text-accent={tab === 'chat'}
+					class:text-fg-faint={tab !== 'chat'}
+					onclick={() => (tab = 'chat')}
+				>
+					<Icon name="chat" size={14} /> Chat
+				</button>
+			</div>
+
+			<!-- Both stay mounted: switching tabs must not drop a streaming turn
+			     or the form's in-progress edits. -->
+			<div class="min-h-0 flex-1 overflow-y-auto" class:hidden={tab !== 'edit'}>
+				<ResumeForm bind:data={resume} onchange={scheduleSave} />
+			</div>
+			<div class="min-h-0 flex-1" class:hidden={tab !== 'chat'}>
+				<ChatPanel
+					resumeId={data.resume.id}
+					enabled={data.chat.enabled}
+					history={data.chat.history}
+					onrender={onAgentRender}
+					onapplied={onAgentApplied}
+					onbusy={(b) => (agentBusy = b)}
+				/>
+			</div>
 		</div>
 
 		<div class="min-h-0">
-			<PdfPreview resumeId={data.resume.id} {version} {building} {error} />
+			<PdfPreview resumeId={data.resume.id} {version} building={building || agentBusy} {error} />
 		</div>
 	</div>
 </div>

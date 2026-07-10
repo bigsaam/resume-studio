@@ -43,6 +43,15 @@ export const config = {
 	/** Per-resume PDFs and per-user uploaded assets. */
 	resumesDir: path.join(dataRoot, 'resumes'),
 	assetsDir: path.join(dataRoot, 'assets'),
+	/**
+	 * `cwd` and `HOME` for the Claude Agent SDK subprocess. It writes its session
+	 * store under `$HOME/.claude/`, and resuming a conversation reads it back.
+	 * Pointing both here keeps that out of the image and inside the data volume.
+	 *
+	 * The agent has no filesystem tools, so this directory is not a sandbox
+	 * boundary — it is only somewhere writable.
+	 */
+	agentDir: path.join(dataRoot, 'agent'),
 
 	// --- auth ---
 	googleClientId: str(env.GOOGLE_OAUTH_CLIENT_ID),
@@ -73,6 +82,16 @@ export const config = {
 	model: str(env.CLAUDE_MODEL, 'claude-sonnet-5'),
 	maxTurns: int(env.CLAUDE_MAX_TURNS, 12),
 	chatTurnsPerDay: int(env.CHAT_TURNS_PER_DAY, 100),
+	/** Longest a single chat turn may run before it is aborted. */
+	chatTimeoutMs: int(env.CHAT_TIMEOUT_MS, 120_000),
+	/** Reject a chat message longer than this before it reaches the model. */
+	maxChatMessageChars: int(env.MAX_CHAT_MESSAGE_CHARS, 4_000),
+	anthropicApiKey: str(env.ANTHROPIC_API_KEY) || null,
+	claudeCodeOauthToken: str(env.CLAUDE_CODE_OAUTH_TOKEN) || null,
+	/** Chat is hidden and the route 503s unless the operator supplied credentials. */
+	get agentConfigured(): boolean {
+		return !!(this.anthropicApiKey || this.claudeCodeOauthToken);
+	},
 
 	/** Reject resume blobs larger than this before they ever reach Typst. */
 	maxResumeBytes: int(env.MAX_RESUME_BYTES, 256 * 1024)
