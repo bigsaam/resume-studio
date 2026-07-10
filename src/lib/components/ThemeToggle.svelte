@@ -1,11 +1,14 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Icon from './Icon.svelte';
 
 	// The inline script in app.html already stamped a class on <html> before
 	// paint; read it back rather than re-deriving, so we never disagree with it.
+	// `document` doesn't exist during SSR, and the class never changes underneath
+	// us — this is a one-time read after mount, not a derivation.
 	let theme = $state<'light' | 'dark'>('light');
 
-	$effect(() => {
+	onMount(() => {
 		theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 	});
 

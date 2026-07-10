@@ -42,13 +42,12 @@ What's left:
 - Deny the Typst child network egress at the container/host level. The package is
   vendored so nothing _should_ be fetched, but `#import "@preview/..."` inside a
   user's bio would otherwise still try.
-- CI: typecheck + build + `pnpm test`, and a secret/PII scan before publish.
-- **`pnpm lint` cannot run.** There is no `eslint.config.js` (ESLint 9 requires
-  flat config) and no Prettier config, so `prettier --check .` compares the whole
-  tree against Prettier's defaults and fails on every file. Adding a Prettier
-  config reformats ~59 files, so it wants to be its own commit. Separately,
-  `prettier-plugin-svelte@3.5.2` throws `getVisitorKeys is not a function` on
-  every `.svelte` file under `prettier@3.9.x` — it needs the v4 plugin.
+
+CI runs `pnpm lint`, `pnpm check`, `pnpm test` and `pnpm build`; renders every
+template offline against the vendored package on a separate job; and refuses a
+commit that tracks `data/`, `.env`, a database, a seed file other than the two
+`.gitignore` allows, or a credential-shaped string. Both guards were tested by
+planting an offender.
 
 ## Known smaller gaps
 

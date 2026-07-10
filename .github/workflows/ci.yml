@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch cancels the first.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # `pnpm-workspace.yaml` approves better-sqlite3's native build; without it
+      # the binding is silently skipped and every test fails opening the database.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm check
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  # Typst is only needed to prove a résumé still typesets. Kept separate so a
+  # failure here reads as "the templates broke", not "the toolchain is missing".
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Typst
+        env:
+          TYPST_VERSION: 0.15.0
+        run: |
+          curl -fsSL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" | tar -xJ -C /tmp
+          sudo mv /tmp/typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst
+          typst --version
+
+      # Renders every template from its own default content, offline, against the
+      # vendored `@preview` package. Catches a template that stopped compiling and
+      # a font that stopped resolving.
+      - name: Render every template
+        run: pnpm render:templates
+
+  # `data/`, `.env`, seed files and photographs must never reach this repo.
+  # Deliberately hermetic — no third-party action, nothing to authorise.
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse tracked data, env, seed content or databases
+        run: |
+          # `.gitignore` already allows exactly two files under seed/. Say the
+          # same thing here, so deleting a negation from .gitignore can't quietly
+          # let somebody's real résumé into the repo.
+          offenders=$(
+            {
+              git ls-files | grep -E '^(data/|\.env$)|\.(db|sqlite|sqlite3)$' || true
+              git ls-files 'seed/*' | grep -vE '^seed/(README\.md|example@example\.com\.json)$' || true
+            } | sort -u
+          )
+          if [ -n "$offenders" ]; then
+            echo "::error::a file that must never be committed is tracked:"
+            echo "$offenders"
+            exit 1
+          fi
+          echo "clean: no data/, .env, seed content or database files are tracked"
+
+      - name: Scan tracked files for credentials
+        run: |
+          # High-signal patterns only. A noisy scanner that everyone learns to
+          # ignore is worse than no scanner.
+          patterns='sk-ant-[A-Za-z0-9_-]{20}|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|GOOGLE_OAUTH_CLIENT_SECRET=.+|AUTH_SECRET=[A-Za-z0-9]{16}|ghp_[A-Za-z0-9]{36}|AKIA[0-9A-Z]{16}'
+          if git grep -InE "$patterns" -- ':!*.example' ':!.github/workflows/*'; then
+            echo "::error::a credential-shaped string is committed"
+            exit 1
+          fi
+          echo "clean: no credential-shaped strings in tracked files"
