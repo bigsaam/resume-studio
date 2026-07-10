@@ -40,6 +40,12 @@
 					>
 						<Icon name="download" size={16} />
 					</a>
+					<form method="POST" action="?/duplicate" use:enhance>
+						<input type="hidden" name="id" value={r.id} />
+						<button class="btn-ghost text-fg-muted" title="Duplicate" aria-label="Duplicate">
+							<Icon name="copy" size={16} />
+						</button>
+					</form>
 					<form
 						method="POST"
 						action="?/delete"

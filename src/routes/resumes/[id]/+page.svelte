@@ -23,6 +23,33 @@
 	/** The agent holds the per-résumé lock; a form save would only 409. */
 	let agentBusy = $state(false);
 
+	// svelte-ignore state_referenced_locally
+	let title = $state(data.resume.title);
+
+	/**
+	 * The title is metadata, not résumé content: renaming doesn't recompile and
+	 * doesn't take the per-résumé lock, so it can't collide with a chat turn.
+	 */
+	async function renameTo(next: string) {
+		const clean = next.trim();
+		if (!clean || clean === data.resume.title) {
+			title = data.resume.title;
+			return;
+		}
+		const res = await fetch(`/api/resumes/${data.resume.id}`, {
+			method: 'PATCH',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ title: clean })
+		});
+		if (!res.ok) {
+			title = data.resume.title; // put the old one back
+			return;
+		}
+		const body = await res.json();
+		title = body.title;
+		data.resume.title = body.title;
+	}
+
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	/** Debounce: a burst of keystrokes becomes one save + one compile. */
@@ -91,13 +118,25 @@
 	}
 </script>
 
-<svelte:head><title>{data.resume.title} · Resume Studio</title></svelte:head>
+<svelte:head><title>{title} · Resume Studio</title></svelte:head>
 
 <div class="flex h-[calc(100vh-3rem)] flex-col gap-4">
 	<div class="flex shrink-0 items-center justify-between gap-4">
 		<div class="min-w-0">
 			<a href="/resumes" class="text-xs text-fg-faint hover:text-fg-muted">← Resumes</a>
-			<h1 class="truncate text-xl font-semibold tracking-tight">{data.resume.title}</h1>
+			<input
+				class="w-full truncate rounded border border-transparent bg-transparent px-1 text-xl font-semibold tracking-tight hover:border-line focus:border-line focus:outline-none"
+				bind:value={title}
+				aria-label="Resume title"
+				onblur={() => renameTo(title)}
+				onkeydown={(e) => {
+					if (e.key === 'Enter') e.currentTarget.blur();
+					if (e.key === 'Escape') {
+						title = data.resume.title;
+						e.currentTarget.blur();
+					}
+				}}
+			/>
 		</div>
 		<div class="flex items-center gap-2 text-xs">
 			{#if agentBusy}

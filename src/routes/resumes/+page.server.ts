@@ -1,6 +1,6 @@
 import { redirect, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { listResumes, createResume, deleteResume } from '$lib/server/resumes';
+import { listResumes, createResume, deleteResume, duplicateResume } from '$lib/server/resumes';
 import { requireOwnedResume } from '$lib/server/access';
 import { compileResume } from '$lib/server/compile';
 import { templates } from '$lib/server/templates';
@@ -28,6 +28,17 @@ export const actions: Actions = {
 		const resume = createResume({ userId: locals.user!.id, templateId, title: String(form.get('title') ?? '') });
 		await compileResume(resume.id);
 		redirect(303, `/resumes/${resume.id}`);
+	},
+
+	duplicate: async ({ locals, request }) => {
+		const form = await request.formData();
+		// Throws 404 if it isn't theirs.
+		const source = requireOwnedResume(locals.user, Number(form.get('id')));
+
+		const copy = duplicateResume(source);
+		// The copy has no PDF on disk yet; render it so the card isn't blank.
+		await compileResume(copy.id);
+		redirect(303, `/resumes/${copy.id}`);
 	},
 
 	delete: async ({ locals, request }) => {
