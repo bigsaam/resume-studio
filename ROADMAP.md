@@ -84,12 +84,10 @@ planting an offender.
 - **Template thumbnails are cached until the directory is deleted.** Editing a
   `main.typ` or a `default.ts` will not regenerate `data/thumbs/*.png`. Deleting
   the directory is the way; a content hash in the filename would be better.
-- **`drizzle-orm` is pinned at `^0.36.3`, which has a HIGH advisory**
-  (GHSA-gpj5-g38j-94v9, SQL injection via improperly escaped _identifiers_, fixed
-  in `>=0.45.2`). Not reachable here — every `sql` template interpolates either a
-  drizzle column object or a bound value, and there is no `sql.raw` or
-  `sql.identifier` anywhere — but the bump is worth doing on its own, alongside
-  `drizzle-kit`.
+- `vitest` and `vite` carry dev-only advisories (the Vitest UI server, which we
+  never start, and a Windows-specific `server.fs.deny` bypass in the dev server).
+  Clearing them means moving off the `vite` 5 that SvelteKit 2 pins — its own
+  change, not a security fix riding along. `pnpm audit --prod` is clean.
 - `templates/starter/main.typ` **ignores `section.page`** — it's one continuous
   flow. That's intentional, but means moving a section to "p2" does nothing there.
 - The seed example carries a `_comment` key; Zod strips unknown keys, so it's
