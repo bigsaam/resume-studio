@@ -4,10 +4,18 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
-import { assets, users } from './db/schema';
+import { assets, resumes, users } from './db/schema';
 import { config } from './config';
-import { resolveAssetPath, userAssetDir } from './assets';
-import { createAsset, deleteAsset } from './uploads';
+import { starterDefault } from './templates/starter/default';
+import {
+	assetUsage,
+	deleteAsset,
+	deleteUnusedAssets,
+	referencedAssetIds,
+	resolveAssetPath,
+	userAssetDir
+} from './assets';
+import { createAsset } from './uploads';
 
 function makeUser(email: string): number {
 	return db.insert(users).values({ email, googleSub: `sub-${email}` }).returning().get().id;
@@ -44,6 +52,7 @@ const ok = <T extends { ok: boolean }>(r: T) => {
 };
 
 beforeEach(() => {
+	db.delete(resumes).run();
 	db.delete(assets).run();
 	db.delete(users).run();
 	fs.rmSync(config.assetsDir, { recursive: true, force: true });
@@ -252,6 +261,67 @@ describe('asset ids', () => {
 			expect(resolveAssetPath(uid, asset.id)).not.toBeNull();
 			db.delete(assets).run(); // stay under the ceiling
 		}
+	});
+});
+
+describe('reaping unused uploads', () => {
+	function makeResume(userId: number, photo?: string, logos: string[] = []) {
+		const data = structuredClone(starterDefault);
+		data.header.photo = photo ?? '';
+		data.education = logos.map((logo) => ({ logo, logoWidth: 30, lines: ['*Degree*'] }));
+		return db.insert(resumes).values({ userId, templateId: 'starter', title: 'R', data }).returning().get();
+	}
+
+	it('finds ids referenced as a photo or an education logo', async () => {
+		const uid = makeUser('a@example.com');
+		const photo = ok(await createAsset(uid, 'photo', await jpegWithExif())).asset;
+		const logo = ok(await createAsset(uid, 'logo', await pngWithAlpha())).asset;
+		makeResume(uid, photo.id, [logo.id]);
+
+		expect(referencedAssetIds(uid)).toEqual(new Set([photo.id, logo.id]));
+	});
+
+	it('deletes only what no résumé points at', async () => {
+		const uid = makeUser('a@example.com');
+		const used = ok(await createAsset(uid, 'photo', await jpegWithExif())).asset;
+		const orphan = ok(await createAsset(uid, 'photo', await pngWithAlpha())).asset;
+		makeResume(uid, used.id);
+
+		expect(deleteUnusedAssets(uid)).toBe(1);
+		expect(resolveAssetPath(uid, used.id)).not.toBeNull();
+		expect(resolveAssetPath(uid, orphan.id)).toBeNull();
+		expect(fs.readdirSync(userAssetDir(uid))).toHaveLength(1);
+	});
+
+	it('does not let one user’s résumé keep another user’s upload alive', async () => {
+		const owner = makeUser('owner@example.com');
+		const other = makeUser('other@example.com');
+		const asset = ok(await createAsset(owner, 'photo', await jpegWithExif())).asset;
+
+		// `other` references the id, but it isn't theirs — and it must not save it.
+		makeResume(other, asset.id);
+
+		expect(referencedAssetIds(owner)).toEqual(new Set());
+		expect(deleteUnusedAssets(owner)).toBe(1);
+		expect(resolveAssetPath(owner, asset.id)).toBeNull();
+	});
+
+	it('is a no-op when everything is in use', async () => {
+		const uid = makeUser('a@example.com');
+		const asset = ok(await createAsset(uid, 'photo', await jpegWithExif())).asset;
+		makeResume(uid, asset.id);
+
+		expect(deleteUnusedAssets(uid)).toBe(0);
+		expect(resolveAssetPath(uid, asset.id)).not.toBeNull();
+	});
+
+	it('reports usage totals', async () => {
+		const uid = makeUser('a@example.com');
+		const a = ok(await createAsset(uid, 'photo', await jpegWithExif())).asset;
+		const b = ok(await createAsset(uid, 'logo', await pngWithAlpha())).asset;
+
+		expect(assetUsage(uid)).toEqual({ count: 2, bytes: a.bytes + b.bytes });
+		expect(assetUsage(makeUser('empty@example.com'))).toEqual({ count: 0, bytes: 0 });
 	});
 });
 

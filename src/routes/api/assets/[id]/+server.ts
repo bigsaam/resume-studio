@@ -1,8 +1,7 @@
 import fs from 'node:fs';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { resolveAssetPath } from '$lib/server/assets';
-import { deleteAsset } from '$lib/server/uploads';
+import { deleteAsset, resolveAssetPath } from '$lib/server/assets';
 
 /** Only formats `createAsset` ever writes. */
 const CONTENT_TYPE: Record<string, string> = {

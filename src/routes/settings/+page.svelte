@@ -7,6 +7,11 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let copied = $state(false);
 
+	let unusedCount = $derived(data.uploads.assets.filter((a) => !a.used).length);
+
+	const kb = (b: number) => `${Math.max(1, Math.round(b / 1024))} KB`;
+	const mb = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
+
 	async function copy(code: string) {
 		await navigator.clipboard.writeText(code);
 		copied = true;
@@ -16,7 +21,63 @@
 
 <svelte:head><title>Settings · Resume Studio</title></svelte:head>
 
-<PageHeader title="Settings" subtitle="Appearance is in the sidebar. Invites live here." />
+<PageHeader title="Settings" subtitle="Appearance is in the sidebar. Uploads and invites live here." />
+
+<div class="card mb-4 p-5">
+	<h2 class="mb-1 font-medium">Uploads</h2>
+	<p class="mb-4 text-sm text-fg-muted">
+		{data.uploads.count} of {data.uploads.maxCount} images · {mb(data.uploads.bytes)} of {mb(
+			data.uploads.maxBytes
+		)}. Removing a photo from a résumé only detaches it — the file stays, because another résumé may still
+		use it.
+	</p>
+
+	{#if data.uploads.assets.length === 0}
+		<p class="text-sm text-fg-faint">Nothing uploaded yet.</p>
+	{:else}
+		<div class="mb-4 grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-3">
+			{#each data.uploads.assets as a (a.id)}
+				<div class="flex flex-col gap-1">
+					<img
+						src="/api/assets/{encodeURIComponent(a.id)}"
+						alt=""
+						class="aspect-square w-full rounded-lg border border-line bg-bg-raised object-cover"
+						class:opacity-50={!a.used}
+					/>
+					<div class="flex items-center justify-between gap-1 text-xs">
+						<span class={a.used ? 'text-fg-faint' : 'text-amber-500'}>{a.used ? a.kind : 'unused'}</span>
+						<form method="POST" action="?/deleteUpload" use:enhance>
+							<input type="hidden" name="id" value={a.id} />
+							<button
+								class="rounded p-0.5 text-fg-faint hover:text-red-500"
+								title="Delete"
+								aria-label="Delete upload"
+							>
+								<Icon name="trash" size={13} />
+							</button>
+						</form>
+					</div>
+					<span class="text-[0.65rem] text-fg-faint">{kb(a.bytes)}</span>
+				</div>
+			{/each}
+		</div>
+
+		{#if unusedCount > 0}
+			<form method="POST" action="?/purgeUploads" use:enhance>
+				<button class="btn-ghost !py-1.5 text-xs">
+					<Icon name="trash" size={14} />
+					Delete {unusedCount} unused image{unusedCount === 1 ? '' : 's'}
+				</button>
+			</form>
+		{:else}
+			<p class="text-xs text-fg-faint">Every upload is in use.</p>
+		{/if}
+	{/if}
+
+	{#if form?.purged !== undefined}
+		<p class="mt-3 text-xs text-fg-muted">Deleted {form.purged} unused image{form.purged === 1 ? '' : 's'}.</p>
+	{/if}
+</div>
 
 {#if data.isAdmin}
 	<div class="card mb-4 p-5">

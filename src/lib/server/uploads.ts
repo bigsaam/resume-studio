@@ -2,11 +2,11 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from './db';
 import { assets, type Asset } from './db/schema';
 import { config } from './config';
-import { userAssetDir } from './assets';
+import { assetUsage, userAssetDir } from './assets';
 import { Semaphore } from './semaphore';
 
 /**
@@ -51,19 +51,6 @@ function newAssetId(): string {
  */
 const decodes = new Semaphore(config.uploadConcurrency);
 
-export function assetCount(userId: number): number {
-	return usageFor(userId).count;
-}
-
-function usageFor(userId: number): { count: number; bytes: number } {
-	const row = db
-		.select({ n: sql<number>`count(*)`, b: sql<number>`coalesce(sum(${assets.bytes}), 0)` })
-		.from(assets)
-		.where(eq(assets.userId, userId))
-		.get();
-	return { count: row?.n ?? 0, bytes: row?.b ?? 0 };
-}
-
 export async function createAsset(
 	userId: number,
 	kind: 'photo' | 'logo',
@@ -75,7 +62,7 @@ export async function createAsset(
 	}
 	// Fast path only. The authoritative check happens inside the insert
 	// transaction below, because `sharp` is awaited in between.
-	if (assetCount(userId) >= config.maxAssetsPerUser) {
+	if (assetUsage(userId).count >= config.maxAssetsPerUser) {
 		return fail(`You've reached the limit of ${config.maxAssetsPerUser} uploaded images. Delete one first.`);
 	}
 
@@ -187,20 +174,6 @@ class CeilingReached extends Error {
 	}
 }
 
-/**
- * Delete an asset the caller owns. Returns false for an id they don't own, so
- * the route can 404 rather than confirm the id exists.
- */
-export function deleteAsset(userId: number, assetId: string): boolean {
-	const row = db
-		.select()
-		.from(assets)
-		.where(and(eq(assets.id, assetId), eq(assets.userId, userId)))
-		.get();
-	if (!row) return false;
-
-	db.delete(assets).where(and(eq(assets.id, assetId), eq(assets.userId, userId))).run();
-	// The row is the source of truth; a leftover file is unreachable without it.
-	fs.rmSync(path.join(userAssetDir(userId), `${row.id}${row.ext}`), { force: true });
-	return true;
-}
+// `deleteAsset` lives in `assets.ts` alongside `resolveAssetPath`: deleting an
+// upload needs no image codec, and the Settings page should not pull libvips in
+// merely to list files.
