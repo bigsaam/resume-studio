@@ -19,7 +19,9 @@ export const users = sqliteTable('users', {
 	role: text('role', { enum: ['admin', 'user'] })
 		.notNull()
 		.default('user'),
-	theme: text('theme', { enum: ['light', 'dark'] }),
+	// No `theme` column: the light/dark choice is a per-device preference and
+	// lives in `localStorage`, where the inline script in `app.html` can read it
+	// before first paint. A server round-trip could only be slower and wronger.
 	createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().default(now),
 	lastLoginAt: integer('last_login_at', { mode: 'timestamp_ms' })
 });
