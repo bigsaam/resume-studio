@@ -73,6 +73,11 @@ resume field is, in effect, Typst code. That is deliberate — it's what makes
   `vendor/typst-packages/` and resolved from disk.
 - **Uploads are opaque ids**, never paths, so a crafted `photo` value can't
   traverse the filesystem.
+- **Uploaded images are re-encoded, not just validated.** Every file is decoded
+  to pixels and written back out from those pixels, so EXIF (including GPS)
+  is discarded and a polyglot — a valid JPEG with a payload appended — cannot
+  survive. Decompression bombs are refused before they allocate. SVG is rejected:
+  libvips would happily render it, but an SVG is a document, not an image.
 - **The chat agent has no filesystem or shell tools.** The session is created
   with `tools: []`, which removes every built-in (`Read`, `Write`, `Bash`,
   `Grep`, `WebFetch`); the only capabilities are `get_resume`, `edit_resume` and
@@ -95,14 +100,16 @@ Found a problem? Please open an issue.
 | `src/lib/server/templates/` | Template registry, Zod schema, Typst files |
 | `src/lib/server/compile.ts` | Sandboxed Typst compile service |
 | `src/lib/server/agent/` | Claude Agent SDK session + JSON-only MCP tools |
+| `src/lib/server/uploads.ts` | Image ingest: decode, re-encode, strip metadata |
 | `src/lib/server/access.ts` | Allowlist, invites, ownership checks |
 | `src/lib/components/` | UI |
 | `fonts/`, `vendor/` | Bundled fonts and Typst packages |
 
 ## Status
 
-The core loop works: sign in, pick a template, edit or chat, download. **Photo
-uploads and editor completeness are not built yet** — see [ROADMAP.md](ROADMAP.md).
+The core loop works: sign in, pick a template, edit or chat, upload a photo,
+download. **Editor completeness, and rate limiting beyond a daily chat cap, are
+not built yet** — see [ROADMAP.md](ROADMAP.md).
 
 Chat needs `ANTHROPIC_API_KEY`. Without it the Chat tab says so and the endpoint
 returns 503; everything else works unchanged.

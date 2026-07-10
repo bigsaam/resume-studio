@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Field from './form/Field.svelte';
+	import ImageField from './form/ImageField.svelte';
 	import ListEditor from './form/ListEditor.svelte';
 	import BulletList from './form/BulletList.svelte';
 	import type { ResumeData } from '$lib/server/templates/schema';
@@ -99,6 +100,13 @@
 			<span class="label">Bio</span>
 			<textarea class="input resize-y" rows="4" bind:value={data.header.bio} oninput={onchange}></textarea>
 		</label>
+		<ImageField
+			label="Photo"
+			kind="photo"
+			bind:value={data.header.photo}
+			hint="Re-encoded on upload — EXIF and location data are discarded."
+			{onchange}
+		/>
 		<Field label="Photo caption" bind:value={data.header.photoCaption} {onchange} />
 	{/snippet}
 	{@render group('header', 'Header', headerBody)}
@@ -139,7 +147,11 @@
 		>
 			{#snippet row(_e, i)}
 				<div class="flex flex-col gap-2">
-					<Field label="Date" bind:value={data.education[i].date} {onchange} placeholder="Jun. 2016" />
+					<ImageField label="Logo" kind="logo" bind:value={data.education[i].logo} {onchange} />
+					<div class="grid grid-cols-2 gap-2">
+						<Field label="Date" bind:value={data.education[i].date} {onchange} placeholder="Jun. 2016" />
+						<Field label="Logo width (pt)" type="number" bind:value={data.education[i].logoWidth} {onchange} />
+					</div>
 					<label class="block">
 						<span class="label">Lines (one per line; first is bold)</span>
 						<textarea

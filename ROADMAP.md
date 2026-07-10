@@ -7,23 +7,17 @@ sandbox and access controls were tested, not assumed (see *Verified* below).
 **Phase 2 (the chat agent) is built.** See *Phase 2, as built* below for the
 places the plan turned out to be wrong.
 
+**Phase 3 (photo uploads) is built.** `POST /api/assets` decodes every upload
+with `sharp` and re-encodes it from the pixels — EXIF/GPS is discarded, appended
+polyglot payloads cannot survive, decompression bombs are refused before they
+allocate, and SVG is rejected outright (libvips would render it; an SVG is a
+document, not an image). Stored as `.png` when it has transparency, `.jpg`
+otherwise, because Typst picks its decoder from the extension. `ImageField`
+uploads and stores the returned opaque id — never a path.
+
 Everything below is what remains, in the order it makes sense to build.
 
 ---
-
-## Phase 3 — assets (the photo)
-
-`assets` table and `lib/server/assets.ts` exist; `compile.ts` already resolves
-opaque ids into the compile root. What's missing is the **upload route and UI**,
-so `header.photo` is always `""` today and Jenny's seeded resume renders without
-her photo.
-
-- `POST /api/assets` — accept an image, cap size and dimensions, **re-encode**
-  (strips EXIF/GPS and any polyglot payload), store at
-  `data/assets/<userId>/<id><ext>`, insert an `assets` row, return the id.
-- Form fields for `header.photo` and `education[].logo` that upload and store the
-  returned id. Never a path: `resolveAssetPath()` is the only thing that turns an
-  id into a filename, and it re-checks containment.
 
 ## Phase 4 — editor completeness
 
@@ -34,6 +28,10 @@ her photo.
 - Bullet `sub[]` editing is crude (a textarea, one per line).
 - Resume **duplicate** action; rename from the workbench.
 - The template gallery has no thumbnails.
+- **Orphaned uploads are never collected.** Removing a photo detaches the id
+  from the résumé but leaves the file, because another résumé may still use it.
+  Nothing reaps an asset that no résumé references; `MAX_ASSETS_PER_USER` is the
+  only bound. A "manage uploads" list in Settings would close this.
 
 ## Phase 5 — hardening
 
@@ -76,6 +74,20 @@ is enforced. What's left:
 - A turn cut short records a **floor**, not the true token spend: an assistant
   message's `output_tokens` is its count at `message_start`. Under-counts, never
   over-counts.
+- **`pnpm build` opens the database.** SvelteKit's route-analysis pass imports
+  every server module, and `db/index.ts` calls `createDb()` at import, so a build
+  leaves an empty `./data/resume-studio.db` behind (gitignored, harmless). Making
+  `db` lazy would fix it. Pre-dates the agent work.
+- **An upload orphaned by a crash is never collected.** The file is written and
+  renamed before the row is inserted; a `SIGKILL` in between leaves a file no
+  `resolveAssetPath` can reach (so it is unreachable, not dangerous) and nothing
+  reaps it. A sweep of `assetsDir` for files with no matching row would close it.
+- **`drizzle-orm` is pinned at `^0.36.3`, which has a HIGH advisory**
+  (GHSA-gpj5-g38j-94v9, SQL injection via improperly escaped *identifiers*, fixed
+  in `>=0.45.2`). Not reachable here — every `sql` template interpolates either a
+  drizzle column object or a bound value, and there is no `sql.raw` or
+  `sql.identifier` anywhere — but the bump is worth doing on its own, alongside
+  `drizzle-kit`.
 - `templates/starter/main.typ` **ignores `section.page`** — it's one continuous
   flow. That's intentional, but means moving a section to "p2" does nothing there.
 - The seed example carries a `_comment` key; Zod strips unknown keys, so it's
@@ -154,6 +166,30 @@ the renders below are real PDFs.
 | Résumé whose `template_id` no longer exists | `error` event, turn refundable, no leak of the template name (unit test) |
 | Agent `$HOME` | `data/agent/<resumeId>/` — one session-store bucket per résumé |
 | Response headers | `application/x-ndjson`, `no-store`, `x-accel-buffering: no` |
+
+## Verified in Phase 3
+
+Against a running server, with real Typst and a real `sharp`:
+
+| Check | Result |
+|---|---|
+| JPEG carrying `IFD0.Copyright` and a GPS directory | stored file contains neither the string nor any EXIF block |
+| JPEG carrying EXIF + ICC + XMP | all three absent from the stored file (asserted, so a sharp upgrade that changes its defaults fails loudly) |
+| `maxAssetsPerUser + 4` uploads fired concurrently | exactly `maxAssetsPerUser` succeed — both ceilings are re-checked inside the insert transaction. Verified by mutation: removing the check lets 7 past a cap of 3 |
+| An upload that would cross `MAX_BYTES_PER_USER` | 400, and it leaves neither a row nor a file |
+| Four concurrent renders with `TYPST_CONCURRENCY=2` | all 200 — the semaphore extracted from `compile.ts` behaves as before |
+| Generated ids | always match `^[A-Za-z0-9_-]{1,64}$`, the regex `resolveAssetPath` and the résumé schema both enforce |
+| JPEG with `#read("/data/auth-secret")…POLYGLOT-CANARY` appended | payload absent from the stored bytes |
+| `<svg><script>…</script></svg>` | 400 — decoded as `svg`, refused by format |
+| Shell script, truncated JPEG, empty file | 400 |
+| 500×250 image, `MAX_IMAGE_DIM=64` | stored 64×32; a 16px image is not enlarged |
+| Transparent PNG / opaque JPEG | `.png` / `.jpg`, and the bytes match the extension |
+| `POST /api/assets` unauthenticated | 401 |
+| Another user's asset id, `GET` and `DELETE` | **404** |
+| `../../../etc/passwd`, `/etc/passwd`, 65-char id, `""` | `resolveAssetPath` returns null |
+| Upload past `MAX_ASSETS_PER_USER` | 400; the ceiling is per user, not global |
+| Photo attached, résumé re-rendered | PDF grows 70702 → 74466 bytes and embeds an image XObject |
+| Asset deleted while the résumé still references its id | recompiles clean, falls back to no photo — no revert |
 
 ## Verified in Phase 1
 

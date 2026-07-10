@@ -18,6 +18,10 @@ if (process.env.VITEST) {
 	process.env.ALLOWED_EMAILS = 'owner@example.com';
 	// Small enough that the daily-cap test doesn't need 100 iterations.
 	process.env.CHAT_TURNS_PER_DAY = '3';
+	// Likewise: small upload limits keep the fixtures tiny and the assertions sharp.
+	process.env.MAX_ASSETS_PER_USER = '3';
+	process.env.MAX_IMAGE_DIM = '64';
+	process.env.MAX_UPLOAD_BYTES = '65536';
 }
 
 export default defineConfig({
@@ -26,8 +30,8 @@ export default defineConfig({
 		fs: { allow: ['..'] }
 	},
 	ssr: {
-		// Native binding — must not be bundled.
-		external: ['better-sqlite3']
+		// Native bindings — must not be bundled.
+		external: ['better-sqlite3', 'sharp']
 	},
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],

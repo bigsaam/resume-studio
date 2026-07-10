@@ -94,7 +94,30 @@ export const config = {
 	},
 
 	/** Reject resume blobs larger than this before they ever reach Typst. */
-	maxResumeBytes: int(env.MAX_RESUME_BYTES, 256 * 1024)
+	maxResumeBytes: int(env.MAX_RESUME_BYTES, 256 * 1024),
+
+	// --- uploads ---
+	/** Refuse an upload body larger than this, before decoding it. */
+	maxUploadBytes: int(env.MAX_UPLOAD_BYTES, 8 * 1024 * 1024),
+	/**
+	 * Decode ceiling. A 100 KB PNG can declare 30000×30000 pixels and cost gigabytes
+	 * to decompress; libvips refuses past this many pixels.
+	 */
+	maxImagePixels: int(env.MAX_IMAGE_PIXELS, 40_000_000),
+	/** Longest edge of the stored image. Anything larger is scaled down. */
+	maxImageDim: int(env.MAX_IMAGE_DIM, 2_000),
+	/** Per-user ceiling on stored images, so one account can't fill the disk. */
+	maxAssetsPerUser: int(env.MAX_ASSETS_PER_USER, 50),
+	/**
+	 * Per-user ceiling on stored bytes. A count alone is a weak bound: 50 images
+	 * of incompressible noise at `maxImageDim` are tens of megabytes each.
+	 */
+	maxBytesPerUser: int(env.MAX_BYTES_PER_USER, 64 * 1024 * 1024),
+	/**
+	 * Concurrent image decodes. Each can hold `maxImagePixels` × 4 bytes of raw
+	 * pixels, so this — not the request rate — is what bounds upload memory.
+	 */
+	uploadConcurrency: int(env.UPLOAD_CONCURRENCY, 2)
 } as const;
 
 export const authSecretFile = path.join(config.dataRoot, 'auth-secret');

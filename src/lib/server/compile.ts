@@ -8,6 +8,7 @@ import { resumes, type Resume } from './db/schema';
 import { config } from './config';
 import { getTemplate } from './templates';
 import { resolveAssetPath } from './assets';
+import { Semaphore } from './semaphore';
 import type { ResumeData } from './templates/schema';
 
 /**
@@ -42,22 +43,7 @@ const MAX_LOG = 8_000;
 
 /* ------------------------------------------------------------- semaphore */
 
-let active = 0;
-const waiting: Array<() => void> = [];
-
-async function acquire(): Promise<void> {
-	if (active < config.typstConcurrency) {
-		active++;
-		return;
-	}
-	await new Promise<void>((resolve) => waiting.push(resolve));
-	active++;
-}
-
-function release(): void {
-	active--;
-	waiting.shift()?.();
-}
+const renders = new Semaphore(config.typstConcurrency);
 
 /* ------------------------------------------------------ per-resume dedupe */
 
@@ -175,7 +161,7 @@ async function doCompile(resumeId: number): Promise<BuildResult> {
 
 	const template = getTemplate(resume.templateId);
 
-	await acquire();
+	await renders.acquire();
 	let root: string | null = null;
 	try {
 		root = fs.mkdtempSync(path.join(os.tmpdir(), `rs-${resumeId}-`));
@@ -223,7 +209,7 @@ async function doCompile(resumeId: number): Promise<BuildResult> {
 			version: resume.renderVersion
 		};
 	} finally {
-		release();
+		renders.release();
 		if (root) fs.rm(root, { recursive: true, force: true }, () => {});
 	}
 }
