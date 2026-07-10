@@ -129,9 +129,14 @@ function runTypst(root: string, outPdf: string): Promise<{ ok: boolean; log: str
 				cwd: root,
 				timeout: config.typstTimeoutMs,
 				killSignal: 'SIGKILL',
-				// Resolve `@preview/...` from the vendored cache rather than fetching
-				// it over the network mid-render. Deployments should additionally deny
-				// this process egress.
+				// The one `@preview` package our templates use is vendored here, so a
+				// normal render never touches the network. But a `#import "@preview/…"`
+				// typed into a résumé field for a package we DON'T have vendored will
+				// still be fetched from Typst's registry — the cache path only says
+				// where to look and where to save, not "offline" (there is no offline
+				// flag in Typst 0.15). That fetch is bounded — registry-only, and the
+				// SIGKILL timeout above caps a slow one — but denying this process
+				// egress at the container/host is the real fix. See docker-compose.yml.
 				env: { ...process.env, TYPST_PACKAGE_CACHE_PATH: config.typstPackagePath }
 			}
 		);

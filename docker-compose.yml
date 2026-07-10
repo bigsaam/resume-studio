@@ -29,3 +29,25 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+
+    # --- Render-time network egress ---
+    #
+    # A `#import "@preview/…"` inside a résumé field makes Typst fetch that
+    # package from its official registry. Verified bounds: only the `@preview`
+    # namespace reaches the network (`@evil/pkg` is refused offline); a
+    # `https://…` import resolves as a path *inside* the compile root, not a URL,
+    # so it is not an SSRF; and the 20s `TYPST_TIMEOUT_MS` kills a slow fetch.
+    # Any code that is pulled still renders confined to the throwaway `--root`.
+    #
+    # It is still an unwanted outbound request on user input. The Node process
+    # needs egress (Google OAuth, the Anthropic API) and Typst runs as its child
+    # in the same network namespace, so egress cannot be split in-process.
+    # Deny it at the edge instead — allowlist api.anthropic.com and Google's
+    # OAuth/JWKS hosts on your firewall or reverse proxy, and drop the rest. If
+    # this instance uses neither OAuth-over-egress nor chat, cut it off entirely:
+    #
+    #   networks: [no-egress]
+    #
+    # networks:
+    #   no-egress:
+    #     internal: true

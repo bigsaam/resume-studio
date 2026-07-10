@@ -39,9 +39,18 @@ What's left:
 - Sessions are purged at boot only (`purgeExpiredSessions`). Fine for now.
 - `users.theme` is unused — the theme lives in `localStorage`. Either wire it up
   or drop the column.
-- Deny the Typst child network egress at the container/host level. The package is
-  vendored so nothing _should_ be fetched, but `#import "@preview/..."` inside a
-  user's bio would otherwise still try.
+- **Deny the Typst child network egress at the container/host level.** Verified
+  the exposure: a `#import "@preview/…"` in a résumé field _does_ fetch from
+  Typst's registry (the vendored cache path is not an "offline" switch, and there
+  is no offline flag in Typst 0.15). The bounds, also verified: only the
+  `@preview` namespace reaches the network (`@evil/pkg` is refused with no
+  request); a `https://…` import resolves as a path _inside_ the compile root,
+  not a URL, so it is not an SSRF; the 20s `SIGKILL` caps a slow fetch; and any
+  code pulled still renders confined to `--root`. So it is a bounded outbound
+  request on user input, not exfiltration — but still unwanted. Node needs egress
+  (OAuth, Anthropic) and Typst is its child in the same netns, so it can't be
+  split in-process; `docker-compose.yml` documents the edge allowlist and an
+  `internal: true` network for instances that need no egress at all.
 
 CI runs `pnpm lint`, `pnpm check`, `pnpm test` and `pnpm build`; renders every
 template offline against the vendored package on a separate job; and refuses a

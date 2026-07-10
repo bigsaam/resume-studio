@@ -69,8 +69,13 @@ resume field is, in effect, Typst code. That is deliberate — it's what makes
 - **Compute is bounded.** A wall-clock timeout kills runaway renders; a semaphore
   caps concurrent compiles. The container adds a memory and pid limit and drops
   all capabilities.
-- **No network at render time.** The one `@preview` package is vendored into
-  `vendor/typst-packages/` and resolved from disk.
+- **Renders resolve packages from disk.** The one `@preview` package the
+  templates use is vendored into `vendor/typst-packages/`, so an ordinary render
+  never touches the network. A `#import "@preview/…"` typed into a résumé field
+  for a package that _isn't_ vendored will still be fetched from Typst's registry
+  — bounded (registry-only, not an SSRF, killed by the render timeout, and any
+  code confined to the compile root), but real. Deny the render's egress at your
+  firewall or reverse proxy to close it; see `docker-compose.yml`.
 - **Uploads are opaque ids**, never paths, so a crafted `photo` value can't
   traverse the filesystem.
 - **Uploaded images are re-encoded, not just validated.** Every file is decoded
