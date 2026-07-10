@@ -108,7 +108,14 @@ async function drive(opts: ChatTurnOptions, events: EventQueue<AgentEvent>): Pro
 			? { behavior: 'allow', updatedInput: input }
 			: { behavior: 'deny', message: DENY(name) };
 
-	const acc: Accumulator = { text: '', tokens: 0, stepInput: 0, stepOutput: 0, succeeded: false, errored: false };
+	const acc: Accumulator = {
+		text: '',
+		tokens: 0,
+		stepInput: 0,
+		stepOutput: 0,
+		succeeded: false,
+		errored: false
+	};
 
 	// Everything that can throw lives inside the `try`, so `finally` always runs
 	// and `drive()` keeps its promise never to reject. `getTemplate()` throws on

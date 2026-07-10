@@ -17,7 +17,11 @@ import { createResume, deleteResume, duplicateResume, setTitle, validateResumeDa
 import { appendChatMessage, listChatMessages, setAgentSessionId } from './chat';
 
 function makeUser(email = 'owner@example.com'): number {
-	return db.insert(users).values({ email, googleSub: `sub-${email}` }).returning().get().id;
+	return db
+		.insert(users)
+		.values({ email, googleSub: `sub-${email}` })
+		.returning()
+		.get().id;
 }
 
 beforeEach(() => {

@@ -34,7 +34,11 @@ function compileFails(log = 'error: unclosed delimiter') {
 }
 
 function makeUser(email: string): number {
-	return db.insert(users).values({ email, googleSub: `sub-${email}` }).returning().get().id;
+	return db
+		.insert(users)
+		.values({ email, googleSub: `sub-${email}` })
+		.returning()
+		.get().id;
 }
 
 function makeResume(userId: number, data: ResumeData = starterDefault, lastGood: ResumeData | null = null) {
@@ -152,7 +156,10 @@ describe('edit_resume', () => {
 
 		await buildResumeTools(ctx).editResume.handler({ data: doc }, {});
 
-		const stored = db.select().from(resumes).where(eq(resumes.id, r.id)).get()!.data as Record<string, unknown>;
+		const stored = db.select().from(resumes).where(eq(resumes.id, r.id)).get()!.data as Record<
+			string,
+			unknown
+		>;
 		expect(stored.somethingElse).toBeUndefined();
 		expect(stored.__proto__x).toBeUndefined();
 	});

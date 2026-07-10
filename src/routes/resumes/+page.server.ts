@@ -25,7 +25,11 @@ export const actions: Actions = {
 		const templateId = String(form.get('templateId') ?? 'typographic');
 		if (!templates[templateId]) return fail(400, { error: 'Unknown template' });
 
-		const resume = createResume({ userId: locals.user!.id, templateId, title: String(form.get('title') ?? '') });
+		const resume = createResume({
+			userId: locals.user!.id,
+			templateId,
+			title: String(form.get('title') ?? '')
+		});
 		await compileResume(resume.id);
 		redirect(303, `/resumes/${resume.id}`);
 	},

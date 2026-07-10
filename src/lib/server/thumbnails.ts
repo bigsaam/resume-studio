@@ -80,7 +80,10 @@ async function render(templateId: string): Promise<string | null> {
 		fs.mkdirSync(config.thumbsDir, { recursive: true });
 		const final = thumbPath(templateId);
 		const tmp = `${final}.tmp`;
-		await sharp(raw).resize({ width: WIDTH, withoutEnlargement: true }).png({ compressionLevel: 9 }).toFile(tmp);
+		await sharp(raw)
+			.resize({ width: WIDTH, withoutEnlargement: true })
+			.png({ compressionLevel: 9 })
+			.toFile(tmp);
 		fs.renameSync(tmp, final);
 
 		return final;

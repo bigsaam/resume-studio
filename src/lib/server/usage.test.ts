@@ -6,7 +6,11 @@ import { config } from './config';
 import { reserveTurn, refundTurn, recordTokens, turnsUsed, utcDay } from './usage';
 
 function makeUser(email: string): number {
-	return db.insert(users).values({ email, googleSub: `sub-${email}` }).returning().get().id;
+	return db
+		.insert(users)
+		.values({ email, googleSub: `sub-${email}` })
+		.returning()
+		.get().id;
 }
 
 beforeEach(() => {

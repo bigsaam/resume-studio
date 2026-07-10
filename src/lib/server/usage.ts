@@ -84,9 +84,11 @@ export function recordTokens(userId: number, input: number, output: number, day:
 }
 
 export function turnsUsed(userId: number, day: string = utcDay()): number {
-	return db
-		.select({ turns: usage.turns })
-		.from(usage)
-		.where(and(eq(usage.userId, userId), eq(usage.day, day)))
-		.get()?.turns ?? 0;
+	return (
+		db
+			.select({ turns: usage.turns })
+			.from(usage)
+			.where(and(eq(usage.userId, userId), eq(usage.day, day)))
+			.get()?.turns ?? 0
+	);
 }

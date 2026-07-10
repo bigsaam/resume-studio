@@ -71,9 +71,7 @@ export function deleteResume(resumeId: number): void {
 	fs.rmSync(resumeDir(resumeId), { recursive: true, force: true });
 }
 
-export type ValidationResult =
-	| { ok: true; data: ResumeData }
-	| { ok: false; error: string };
+export type ValidationResult = { ok: true; data: ResumeData } | { ok: false; error: string };
 
 /** Validate an untrusted blob against the schema, with a size ceiling. */
 export function validateResumeData(raw: unknown): ValidationResult {
@@ -103,6 +101,9 @@ export function setTitle(resumeId: number, title: string): string {
 export function revertToLastGood(resumeId: number): boolean {
 	const row = db.select().from(resumes).where(eq(resumes.id, resumeId)).get();
 	if (!row?.lastGoodJson) return false;
-	db.update(resumes).set({ data: row.lastGoodJson, updatedAt: new Date() }).where(eq(resumes.id, resumeId)).run();
+	db.update(resumes)
+		.set({ data: row.lastGoodJson, updatedAt: new Date() })
+		.where(eq(resumes.id, resumeId))
+		.run();
 	return true;
 }

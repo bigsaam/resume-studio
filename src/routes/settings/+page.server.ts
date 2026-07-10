@@ -4,7 +4,13 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { invites } from '$lib/server/db/schema';
 import { createInvite, requireAdmin } from '$lib/server/access';
-import { assetUsage, deleteAsset, deleteUnusedAssets, listAssets, referencedAssetIds } from '$lib/server/assets';
+import {
+	assetUsage,
+	deleteAsset,
+	deleteUnusedAssets,
+	listAssets,
+	referencedAssetIds
+} from '$lib/server/assets';
 import { config } from '$lib/server/config';
 
 export const load: PageServerLoad = ({ locals }) => {

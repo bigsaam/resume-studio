@@ -89,7 +89,9 @@ export function resolveSession(token: string | undefined): User | null {
 
 export function destroySession(token: string | undefined): void {
 	if (!token) return;
-	db.delete(sessions).where(eq(sessions.tokenHash, sha256(token))).run();
+	db.delete(sessions)
+		.where(eq(sessions.tokenHash, sha256(token)))
+		.run();
 }
 
 /** Housekeeping: drop expired rows. Cheap; called at boot. */

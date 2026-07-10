@@ -18,7 +18,11 @@ import {
 import { createAsset } from './uploads';
 
 function makeUser(email: string): number {
-	return db.insert(users).values({ email, googleSub: `sub-${email}` }).returning().get().id;
+	return db
+		.insert(users)
+		.values({ email, googleSub: `sub-${email}` })
+		.returning()
+		.get().id;
 }
 
 /**
@@ -41,7 +45,9 @@ function jpegWithExif(size = 32): Promise<Buffer> {
 
 /** A PNG with transparency, so it must re-encode to .png. */
 function pngWithAlpha(size = 32): Promise<Buffer> {
-	return sharp({ create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+	return sharp({
+		create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }
+	})
 		.png()
 		.toBuffer();
 }

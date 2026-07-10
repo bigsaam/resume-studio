@@ -86,12 +86,15 @@ export function isAllowlisted(email: string): boolean {
  * Decide whether this Google identity may have an account, and create it if so.
  * Returns null when access is denied.
  */
-export function resolveOrCreateUser(identity: {
-	sub: string;
-	email: string;
-	name: string | null;
-	picture: string | null;
-}, inviteCode: string | null): User | null {
+export function resolveOrCreateUser(
+	identity: {
+		sub: string;
+		email: string;
+		name: string | null;
+		picture: string | null;
+	},
+	inviteCode: string | null
+): User | null {
 	const email = identity.email.toLowerCase();
 
 	// Returning user — match on the stable Google subject first, then email.
@@ -117,7 +120,11 @@ export function resolveOrCreateUser(identity: {
 	if (!allowed && !(inviteCode && redeemInvite(inviteCode, email))) return null;
 
 	// The very first account is the operator; only admins can mint invites.
-	const isFirst = db.select({ n: sql<number>`count(*)` }).from(users).get()?.n === 0;
+	const isFirst =
+		db
+			.select({ n: sql<number>`count(*)` })
+			.from(users)
+			.get()?.n === 0;
 
 	return db
 		.insert(users)

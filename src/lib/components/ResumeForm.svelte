@@ -114,7 +114,13 @@
 			<Field label="Name size (pt)" type="number" step={0.5} bind:value={data.theme.nameSize} {onchange} />
 			<Field label="Body size (pt)" type="number" step={0.5} bind:value={data.theme.bodySize} {onchange} />
 			<Field label="Photo width (%)" type="number" bind:value={data.theme.photoWidthPct} {onchange} />
-			<Field label="Photo border (pt)" type="number" step={0.5} bind:value={data.theme.photoBorderWidth} {onchange} />
+			<Field
+				label="Photo border (pt)"
+				type="number"
+				step={0.5}
+				bind:value={data.theme.photoBorderWidth}
+				{onchange}
+			/>
 		</div>
 		<Field label="Photo border colour" type="color" bind:value={data.theme.photoBorderColor} {onchange} />
 	{/snippet}
@@ -154,13 +160,18 @@
 				<div class="grid grid-cols-[7rem_1fr] gap-2">
 					<label class="block">
 						<span class="label">Icon</span>
-						<select class="input" bind:value={data.contact[i].icon} onchange={onchange}>
+						<select class="input" bind:value={data.contact[i].icon} {onchange}>
 							{#each ICONS as ic (ic)}<option value={ic}>{ic}</option>{/each}
 						</select>
 					</label>
 					<div class="flex flex-col gap-2">
 						<Field label="Text" bind:value={data.contact[i].text} {onchange} />
-						<Field label="Link" bind:value={data.contact[i].href} {onchange} placeholder="mailto: / tel: / https:" />
+						<Field
+							label="Link"
+							bind:value={data.contact[i].href}
+							{onchange}
+							placeholder="mailto: / tel: / https:"
+						/>
 					</div>
 				</div>
 			{/snippet}
@@ -181,7 +192,12 @@
 					<ImageField label="Logo" kind="logo" bind:value={data.education[i].logo} {onchange} />
 					<div class="grid grid-cols-2 gap-2">
 						<Field label="Date" bind:value={data.education[i].date} {onchange} placeholder="Jun. 2016" />
-						<Field label="Logo width (pt)" type="number" bind:value={data.education[i].logoWidth} {onchange} />
+						<Field
+							label="Logo width (pt)"
+							type="number"
+							bind:value={data.education[i].logoWidth}
+							{onchange}
+						/>
 					</div>
 					<label class="block">
 						<span class="label">Lines (one per line; first is bold)</span>
@@ -192,8 +208,7 @@
 							oninput={(e) => {
 								data.education[i].lines = e.currentTarget.value.split('\n');
 								onchange();
-							}}
-						></textarea>
+							}}></textarea>
 					</label>
 				</div>
 			{/snippet}
@@ -275,7 +290,7 @@
 					>
 						{#each SECTION_KINDS as k (k)}<option value={k}>{KIND_LABELS[k]}</option>{/each}
 					</select>
-					<select class="input w-20 shrink-0" bind:value={section.page} onchange={onchange}>
+					<select class="input w-20 shrink-0" bind:value={section.page} {onchange}>
 						<option value={1}>p1</option>
 						<option value={2}>p2</option>
 					</select>
@@ -308,7 +323,8 @@
 								{:else}
 									<label class="block">
 										<span class="label">Body</span>
-										<textarea class="input resize-y" rows="2" bind:value={entry.body} oninput={onchange}></textarea>
+										<textarea class="input resize-y" rows="2" bind:value={entry.body} oninput={onchange}
+										></textarea>
 									</label>
 								{/if}
 							</div>

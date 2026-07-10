@@ -95,7 +95,9 @@ export function buildResumeTools(ctx: ToolContext) {
 			const result = validateResumeData(args.data);
 			if (!result.ok) {
 				ctx.events.push({ type: 'tool', name: 'edit_resume', ok: false });
-				return failure(`Rejected — nothing was saved. The document does not match the schema:\n${result.error}`);
+				return failure(
+					`Rejected — nothing was saved. The document does not match the schema:\n${result.error}`
+				);
 			}
 
 			writeResumeData(ctx.resumeId, result.data);

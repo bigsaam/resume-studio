@@ -172,8 +172,7 @@ describe('convertSection', () => {
 						: after.entries.map((e) => e.title);
 
 				// Every source fixture's first row is its first heading.
-				const expected =
-					from === 'work' ? 'Staff Engineer' : from === 'exhibitions' ? 'Solo show' : 'Rust';
+				const expected = from === 'work' ? 'Staff Engineer' : from === 'exhibitions' ? 'Solo show' : 'Rust';
 				expect(headings[0]).toBe(expected);
 			}
 		}
@@ -212,7 +211,14 @@ describe('convertSection', () => {
 			title: 'Experience',
 			page: 1,
 			entries: [
-				{ timeframe: '', title: 'Consultant', titleNote: '', organization: '', location: '', body: 'Prose here.' }
+				{
+					timeframe: '',
+					title: 'Consultant',
+					titleNote: '',
+					organization: '',
+					location: '',
+					body: 'Prose here.'
+				}
 			]
 		};
 		const bullets = convertSection(work, 'bullets');

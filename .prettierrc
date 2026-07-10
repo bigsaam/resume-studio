@@ -1,0 +1,11 @@
+{
+	"useTabs": true,
+	"singleQuote": true,
+	"trailingComma": "none",
+	"printWidth": 110,
+	"plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
+	"overrides": [
+		{ "files": "*.svelte", "options": { "parser": "svelte" } },
+		{ "files": ["*.json", "*.jsonc", "*.md", "*.yml", "*.yaml"], "options": { "useTabs": false } }
+	]
+}

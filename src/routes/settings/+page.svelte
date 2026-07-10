@@ -28,8 +28,8 @@
 	<p class="mb-4 text-sm text-fg-muted">
 		{data.uploads.count} of {data.uploads.maxCount} images · {mb(data.uploads.bytes)} of {mb(
 			data.uploads.maxBytes
-		)}. Removing a photo from a résumé only detaches it — the file stays, because another résumé may still
-		use it.
+		)}. Removing a photo from a résumé only detaches it — the file stays, because another résumé may still use
+		it.
 	</p>
 
 	{#if data.uploads.assets.length === 0}
@@ -75,7 +75,9 @@
 	{/if}
 
 	{#if form?.purged !== undefined}
-		<p class="mt-3 text-xs text-fg-muted">Deleted {form.purged} unused image{form.purged === 1 ? '' : 's'}.</p>
+		<p class="mt-3 text-xs text-fg-muted">
+			Deleted {form.purged} unused image{form.purged === 1 ? '' : 's'}.
+		</p>
 	{/if}
 </div>
 

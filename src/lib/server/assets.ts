@@ -88,7 +88,9 @@ export function deleteAsset(userId: number, assetId: string): boolean {
 		.get();
 	if (!row) return false;
 
-	db.delete(assets).where(and(eq(assets.id, assetId), eq(assets.userId, userId))).run();
+	db.delete(assets)
+		.where(and(eq(assets.id, assetId), eq(assets.userId, userId)))
+		.run();
 	// The row is the source of truth; a leftover file is unreachable without it.
 	fs.rmSync(path.join(userAssetDir(userId), `${row.id}${row.ext}`), { force: true });
 	return true;

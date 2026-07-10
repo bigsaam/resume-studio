@@ -34,9 +34,7 @@
 			<a
 				href={item.href}
 				class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors
-					{active(item.href)
-					? 'bg-bg-raised font-medium text-fg'
-					: 'text-fg-muted hover:bg-bg-soft hover:text-fg'}"
+					{active(item.href) ? 'bg-bg-raised font-medium text-fg' : 'text-fg-muted hover:bg-bg-soft hover:text-fg'}"
 			>
 				<Icon name={item.icon} size={18} />
 				<span class="flex-1">{item.label}</span>

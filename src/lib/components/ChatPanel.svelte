@@ -197,7 +197,10 @@
 			{#if messages.length === 0 && !streaming}
 				<div class="rounded-lg border border-dashed border-line p-4 text-sm text-fg-faint">
 					<p class="mb-1 font-medium text-fg-muted">Ask for a change</p>
-					<p>“Tighten the bio to two sentences.” · “Move Education above Experience.” · “Make the sidebar warmer.”</p>
+					<p>
+						“Tighten the bio to two sentences.” · “Move Education above Experience.” · “Make the sidebar
+						warmer.”
+					</p>
 				</div>
 			{/if}
 
@@ -216,7 +219,9 @@
 
 			{#if streaming}
 				<div class="flex">
-					<div class="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-bg-raised px-3 py-2 text-sm">{streaming}</div>
+					<div class="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-bg-raised px-3 py-2 text-sm">
+						{streaming}
+					</div>
 				</div>
 			{/if}
 
@@ -240,8 +245,7 @@
 				disabled={busy}
 				rows="3"
 				placeholder="Ask for a change…"
-				class="input resize-none text-sm"
-			></textarea>
+				class="input resize-none text-sm"></textarea>
 			<div class="mt-2 flex items-center justify-between">
 				<button
 					type="button"
@@ -256,7 +260,12 @@
 						<Icon name="x" size={13} /> Stop
 					</button>
 				{:else}
-					<button type="button" class="btn-primary !px-3 !py-1 text-xs" onclick={send} disabled={!draft.trim()}>
+					<button
+						type="button"
+						class="btn-primary !px-3 !py-1 text-xs"
+						onclick={send}
+						disabled={!draft.trim()}
+					>
 						Send
 					</button>
 				{/if}

@@ -112,7 +112,10 @@ export const typographicDefault: ResumeData = {
 			spaceAbove: 8,
 			wrapWhole: true,
 			bullets: [
-				{ text: '*Example Public Library* -- design & facilitate maker workshops', date: 'Nov. 2023 - Present' },
+				{
+					text: '*Example Public Library* -- design & facilitate maker workshops',
+					date: 'Nov. 2023 - Present'
+				},
 				{ text: '*Example Food Bank* -- sorting & packing', date: 'Jan. 2022 - Present' },
 				{ text: '*Example Trail Alliance* -- trail maintenance crew', date: 'Mar. 2019 - 2021' }
 			]
@@ -130,7 +133,10 @@ export const typographicDefault: ResumeData = {
 					sub: ['Restoring a 1950s platen press and printing short-run broadsides']
 				},
 				{ text: '*Field Notes* -- a zine about making things by hand', date: 'Jan. 2024 - Present' },
-				{ text: '*Typeface in progress* -- a humanist sans for long-form reading', date: 'Jun. 2016 - Present' }
+				{
+					text: '*Typeface in progress* -- a humanist sans for long-form reading',
+					date: 'Jun. 2016 - Present'
+				}
 			]
 		},
 		{

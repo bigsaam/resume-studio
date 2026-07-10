@@ -31,7 +31,9 @@
 
 	{#if error}
 		<div class="m-3 rounded-lg bg-red-500/10 p-3 text-sm text-red-500">
-			<p class="mb-1 flex items-center gap-2 font-medium"><Icon name="warning" size={16} /> Couldn't render</p>
+			<p class="mb-1 flex items-center gap-2 font-medium">
+				<Icon name="warning" size={16} /> Couldn't render
+			</p>
 			<pre class="max-h-40 overflow-auto whitespace-pre-wrap text-xs opacity-90">{error}</pre>
 		</div>
 	{/if}

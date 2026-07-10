@@ -57,7 +57,9 @@ describe('runChatTurn setup failures', () => {
 
 		const collected = await collect(events);
 		// The contract `runChatTurn` advertises: `finished` never rejects.
-		const summary = await expect(finished).resolves.toBeDefined().then(() => finished);
+		const summary = await expect(finished)
+			.resolves.toBeDefined()
+			.then(() => finished);
 
 		expect(collected.some((e) => e.type === 'error')).toBe(true);
 		expect(collected.some((e) => e.type === 'done')).toBe(false);

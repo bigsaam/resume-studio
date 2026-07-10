@@ -45,8 +45,7 @@
 					rows="2"
 					value={bulletText(bullets[i])}
 					oninput={(e) => edit(i, withText(bullets[i], e.currentTarget.value))}
-					placeholder="Bullet text — *bold* and -- en dash work"
-				></textarea>
+					placeholder="Bullet text — *bold* and -- en dash work"></textarea>
 				{#if dated}
 					<input
 						class="input w-40 shrink-0 self-start"
@@ -64,8 +63,7 @@
 						rows="2"
 						value={bulletSub(bullets[i]).join('\n')}
 						oninput={(e) => edit(i, withSubLines(bullets[i], e.currentTarget.value))}
-						placeholder="Sub-bullets, one per line (max 10)"
-					></textarea>
+						placeholder="Sub-bullets, one per line (max 10)"></textarea>
 					<button
 						type="button"
 						class="shrink-0 rounded p-1 text-fg-faint hover:text-red-500"

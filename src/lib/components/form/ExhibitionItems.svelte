@@ -54,8 +54,7 @@
 					rows="1"
 					value={(items![i].sub ?? []).join('\n')}
 					oninput={(e) => setSub(i, e.currentTarget.value)}
-					placeholder="Sub-lines, one per line (optional)"
-				></textarea>
+					placeholder="Sub-lines, one per line (optional)"></textarea>
 			</div>
 		{/snippet}
 	</ListEditor>

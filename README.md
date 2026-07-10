@@ -85,7 +85,7 @@ resume field is, in effect, Typst code. That is deliberate — it's what makes
   ownership. A `canUseTool` gate denies anything else by name. `edit_resume`
   validates against the Zod schema before persisting, and a turn that leaves the
   résumé unable to typeset is rolled back to `last_good_json`.
-- **Chat is metered.** A turn is reserved against a per-user daily cap *before*
+- **Chat is metered.** A turn is reserved against a per-user daily cap _before_
   the model is called, and refunded only if nothing was billed.
 - Sessions are opaque, DB-backed, and bound to a user id. `id_token`s are
   verified against Google's JWKS (`iss`, `aud`, `exp`, `nonce`, `email_verified`).
@@ -95,16 +95,16 @@ Found a problem? Please open an issue.
 
 ## Layout
 
-| Path | Role |
-|---|---|
-| `src/lib/server/templates/` | Template registry, Zod schema, Typst files |
-| `src/lib/server/compile.ts` | Sandboxed Typst compile service |
-| `src/lib/server/agent/` | Claude Agent SDK session + JSON-only MCP tools |
-| `src/lib/server/uploads.ts` | Image ingest: decode, re-encode, strip metadata |
-| `src/lib/sections.ts` | Section construction and lossless kind conversion |
-| `src/lib/server/access.ts` | Allowlist, invites, ownership checks |
-| `src/lib/components/` | UI |
-| `fonts/`, `vendor/` | Bundled fonts and Typst packages |
+| Path                        | Role                                              |
+| --------------------------- | ------------------------------------------------- |
+| `src/lib/server/templates/` | Template registry, Zod schema, Typst files        |
+| `src/lib/server/compile.ts` | Sandboxed Typst compile service                   |
+| `src/lib/server/agent/`     | Claude Agent SDK session + JSON-only MCP tools    |
+| `src/lib/server/uploads.ts` | Image ingest: decode, re-encode, strip metadata   |
+| `src/lib/sections.ts`       | Section construction and lossless kind conversion |
+| `src/lib/server/access.ts`  | Allowlist, invites, ownership checks              |
+| `src/lib/components/`       | UI                                                |
+| `fonts/`, `vendor/`         | Bundled fonts and Typst packages                  |
 
 ## Status
 
