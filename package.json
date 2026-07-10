@@ -5,6 +5,7 @@
   "license": "MIT",
   "type": "module",
   "description": "Self-hosted, multi-user resume builder — structured editor + AI chat + live Typst PDF preview",
+  "packageManager": "pnpm@11.10.0",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",

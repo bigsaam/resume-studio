@@ -1,0 +1,8 @@
+# pnpm >= 11 reads build-script approvals from here, not from the `pnpm` field
+# in package.json (which is kept for pnpm <= 10).
+#
+# better-sqlite3 is a native addon and must compile against the local Node ABI.
+# esbuild fetches its platform binary. Both are build-time only.
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
