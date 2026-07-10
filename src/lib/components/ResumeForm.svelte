@@ -3,6 +3,9 @@
 	import ImageField from './form/ImageField.svelte';
 	import ListEditor from './form/ListEditor.svelte';
 	import BulletList from './form/BulletList.svelte';
+	import ExhibitionItems from './form/ExhibitionItems.svelte';
+	import Icon from './Icon.svelte';
+	import { KIND_LABELS, SECTION_KINDS, convertSection, makeSection, type SectionKind } from '$lib/sections';
 	import type { ResumeData } from '$lib/server/templates/schema';
 
 	interface Props {
@@ -32,6 +35,34 @@
 
 	let open = $state<Record<string, boolean>>({ design: false, header: true, sections: true });
 	const toggle = (k: string) => (open[k] = !open[k]);
+
+	/* ------------------------------------------------------------- sections */
+
+	function moveSection(i: number, delta: number) {
+		const j = i + delta;
+		if (j < 0 || j >= data.sections.length) return;
+		[data.sections[i], data.sections[j]] = [data.sections[j], data.sections[i]];
+		onchange();
+	}
+
+	function removeSection(i: number) {
+		data.sections.splice(i, 1);
+		onchange();
+	}
+
+	function addSection() {
+		data.sections.push(makeSection('bullets'));
+		onchange();
+	}
+
+	/**
+	 * `Section` is a union on `kind`, so this rebuilds the object rather than
+	 * assigning a field. `convertSection` carries the content across.
+	 */
+	function setKind(i: number, kind: SectionKind) {
+		data.sections[i] = convertSection(data.sections[i], kind);
+		onchange();
+	}
 </script>
 
 {#snippet group(key: string, title: string, body: import('svelte').Snippet)}
@@ -210,9 +241,40 @@
 		     per-kind fields their types. -->
 		{#each data.sections as section, si (si)}
 			<div class="rounded-lg border border-line bg-bg p-3">
-				<div class="mb-3 flex items-center gap-2">
+				<div class="mb-2 flex items-center gap-2">
 					<input class="input flex-1 font-medium" bind:value={section.title} oninput={onchange} />
-					<span class="chip shrink-0">{section.kind}</span>
+					<div class="flex shrink-0 items-center gap-1">
+						<button
+							type="button"
+							class="rounded p-1 text-fg-faint hover:bg-bg-hover hover:text-fg disabled:opacity-30"
+							disabled={si === 0}
+							onclick={() => moveSection(si, -1)}
+							aria-label="Move section up">↑</button
+						>
+						<button
+							type="button"
+							class="rounded p-1 text-fg-faint hover:bg-bg-hover hover:text-fg disabled:opacity-30"
+							disabled={si === data.sections.length - 1}
+							onclick={() => moveSection(si, 1)}
+							aria-label="Move section down">↓</button
+						>
+						<button
+							type="button"
+							class="rounded p-1 text-fg-faint hover:bg-bg-hover hover:text-red-500"
+							onclick={() => removeSection(si)}
+							aria-label="Remove section"><Icon name="x" size={14} /></button
+						>
+					</div>
+				</div>
+
+				<div class="mb-3 flex items-center gap-2">
+					<select
+						class="input flex-1"
+						value={section.kind}
+						onchange={(e) => setKind(si, e.currentTarget.value as SectionKind)}
+					>
+						{#each SECTION_KINDS as k (k)}<option value={k}>{KIND_LABELS[k]}</option>{/each}
+					</select>
 					<select class="input w-20 shrink-0" bind:value={section.page} onchange={onchange}>
 						<option value={1}>p1</option>
 						<option value={2}>p2</option>
@@ -268,12 +330,17 @@
 									<Field label="Meta" bind:value={entry.meta} {onchange} />
 									<Field label="Date" bind:value={entry.date} {onchange} />
 								</div>
+								<ExhibitionItems bind:items={entry.items} {onchange} />
 							</div>
 						{/snippet}
 					</ListEditor>
 				{/if}
 			</div>
 		{/each}
+
+		<button type="button" class="btn-ghost self-start !py-1.5 text-xs" onclick={addSection}>
+			<Icon name="plus" size={14} /> Add section
+		</button>
 	{/snippet}
 	{@render group('sections', 'Sections', sectionsBody)}
 </div>
